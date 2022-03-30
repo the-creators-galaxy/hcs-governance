@@ -1,0 +1,13 @@
+version: "3.4"
+services:
+  gov-ui:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+      args:
+        API_ENDPOINT: ${WEBAPP_API_ENDPOINT:-http://localhost}:${SERVER_API_PORT}
+    image: tcg/gov-ui:local
+    ports:
+      - ${WEBAPP_PORT}:80
+    depends_on:
+      - gov-api

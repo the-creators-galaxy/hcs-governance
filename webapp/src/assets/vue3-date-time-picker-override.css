@@ -1,0 +1,28 @@
+.dp__theme_dark {
+    --dp-background-color: transparent;
+    --dp-text-color: var(--cds-nl-0);
+    --dp-hover-color: var(--cds-nd-500);
+    --dp-hover-text-color: var(--cds-cs-500);
+    --dp-hover-icon-color: var(--cds-cs-500);
+    --dp-primary-color: var(--cds-cp-500);
+    --dp-primary-disabled-color: var(--cds-cp-300);
+    --dp-primary-text-color: var(--cds-nl-0);
+    --dp-secondary-color: var(--cds-nd-200);
+    --dp-border-color: var(--cds-nd-600);
+    --dp-menu-border-color: transparent;
+    --dp-border-color-hover: var(--cds-nd-400);
+    --dp-disabled-color: var(--cds-nd-500);
+    --dp-disabled-color-text: var(--cds-nl-0);
+    --dp-scroll-bar-background: var(--cds-nd-500);
+    --dp-scroll-bar-color: var(--cds-cp-500);
+    --dp-success-color: var(--cds-ui-s-500);
+    --dp-success-color-disabled: var(--cds-ui-s-700);
+    --dp-icon-color: var(--cds-nl-200);
+    --dp-danger-color: var(--cds-ui-e-500);
+    --dp-marker-color: var(--cds-ui-e-500);
+    --dp-tooltip-color: var(--cds-ui-i-500);
+}
+
+.dp__overlay_container {
+    background-color: var(--cds-nd-600);
+}

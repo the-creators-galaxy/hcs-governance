@@ -1,0 +1,193 @@
+@import 'brand.css';
+@import 'vue3-date-time-picker/dist/main.css';
+@import 'vue3-date-time-picker-override.css';
+
+html, body {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	line-height: 150%;
+	display: grid;
+	overflow: hidden;
+	position: relative;
+}
+
+body {
+	color: var(--cds-nl-500);
+	background-color: var(--cds-nd-900);
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: var(--cds-font-family);
+	user-select: none;
+}
+
+button {
+	padding: 0.65625rem 1rem;
+	font-size: 1rem;
+	font-weight: 700;
+	text-align: center;
+	border-radius: 2.25rem;
+	color: var(--cds-nl-0);
+	background-color: transparent;
+	border: 1px solid var(--cds-nd-600);
+	transition:
+		background-color .3s cubic-bezier(0.55, 0, 0.1, 1),
+		box-shadow .1s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+button:hover {
+	border-color: var(--cds-nd-400);
+}
+
+button:focus {
+	outline: none;
+	box-shadow: 0px 0px 0px 1px var(--cds-nl-500), 0px 0px 0px 4px var(--cds-nd-600);
+}
+
+button:active {
+	box-shadow: 0px 0px 0px 2px var(--cds-nl-500), 0px 0px 0px 3px var(--cds-nd-600);
+}
+
+button:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+	color: var(--cds-nl-0);
+	background-color: var(--cds-nd-500);
+	border-color: var(--cds-nd-500);
+}
+
+button:disabled:focus, button:disabled:active {
+	box-shadow: none;
+}
+
+button.secondary {
+	color: var(--cds-nd-600);
+	background-color: var(--cds-cs-500);
+	border-color: var(--cds-cs-500);
+}
+
+button.secondary:hover {
+	background-color: var(--cds-cs-600);
+	border-color: var(--cds-cs-600);
+}
+
+button.secondary:focus {
+	box-shadow: 0px 0px 0px 1px var(--cds-cs-300), 0px 0px 0px 4px rgba(78, 241, 193, 0.25);
+}
+
+button.secondary:active {
+	box-shadow: 0px 0px 0px 2px var(--cds-cs-300), 0px 0px 0px 3px rgba(78, 241, 193, 0.25);
+}
+
+button.secondary:disabled:hover {
+	background-color: var(--cds-cs-500);
+	border-color: var(--cds-cs-500);
+}
+
+button.close {
+	display: block;
+	width: 1.5rem;
+	height: 1.5rem;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	background-image: url('@/assets/close-gray.svg');
+	background-position: center;
+	background-repeat: no-repeat;
+	border: none;
+	transition:
+		background-color .3s cubic-bezier(0.55, 0, 0.1, 1),
+		box-shadow .1s cubic-bezier(0.55, 0, 0.1, 1),
+		background-image .3s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+button.close:hover {
+	background-image: url('@/assets/close-white.svg');
+	background-color: var(--cds-cp-500);
+}
+
+button.close:focus {
+	box-shadow: 0px 0px 0px 1px var(--cds-cp-300), 0px 0px 0px 4px rgba(62, 8, 147, 0.25);
+}
+
+button.close:active {
+	box-shadow: 0px 0px 0px 2px var(--cds-cp-300), 0px 0px 0px 3px rgba(62, 8, 147, 0.25);
+}
+
+button.close:disabled:hover {
+	background-color: var(--cds-nd-500);
+	border-color: var(--cds-nd-500);
+}
+
+
+input, select {
+	margin: 0;
+	color: var(--cds-nl-0);
+	background: var(--cds-nd-900);
+	border-radius: 0.5rem;
+	padding: 0 1rem;
+	height: 2.75rem;
+	font-size: 0.75rem;
+	line-height: 1.5rem;
+	border: none;
+	font-family: var(--cds-font-family);
+}
+
+input:focus, select:focus {
+	outline: none;
+	box-shadow: 0px 0px 0px 1px var(--cds-nl-500), 0px 0px 0px 4px var(--cds-nd-600);
+}
+
+input::placeholder {
+	color: var(--cds-nd-300);
+}
+
+dialog {
+	padding: 0;
+	border-radius: 0.5rem;
+	color: var(--cds-nl-500);
+	background-color: var(--cds-nd-800);
+	border: 1px solid var(--cds-nd-600);
+}
+
+dialog>header {
+	display: grid;
+	grid-template-columns: 1fr max-content;
+	align-items: center;
+	justify-items: center;
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: var(--cds-nl-0);
+	padding: 1rem 1.25rem;
+	border-bottom: 1px solid var(--cds-nd-600);
+}
+
+dialog>footer {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 1.25rem;
+	padding: 1.25rem;
+	border-top: 1px solid var(--cds-nd-600);
+}
+
+dialog::backdrop {
+	background-color: #1319209d;
+}
+
+a.back {
+	display: inline-block;
+	font-size: 0.875rem;
+	margin: 0;
+	padding: 0 0 0 1.25rem;
+	cursor: pointer;
+	color: var(--cds-nd-200);
+	background-image: url("@/assets/left-arrow.svg");
+	background-repeat: no-repeat;
+	background-position: left center;
+}
+
+a.back:hover {
+	color: var(--cds-nl-0);
+	background-image: url("@/assets/left-arrow-white.svg");
+}

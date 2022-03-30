@@ -1,0 +1,14 @@
+version: "3.4"
+services:
+  gov-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: tcg/gov-api:local
+    ports:
+      - ${SERVER_API_PORT}:80
+    environment:
+      - MIRROR_GRPC=${MIRROR_GRPC}
+      - MIRROR_REST=${MIRROR_REST}
+      - HCS_TOPIC=${HCS_TOPIC}
+      - HTS_TOKEN=${HTS_TOKEN}

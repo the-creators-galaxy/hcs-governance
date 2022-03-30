@@ -1,0 +1,148 @@
+:root {
+    /* -------------------
+    |
+    |  Brand Colors
+    |
+    | -------------------- */
+  
+    /* Calaxy Primary */
+    --cds-cp-100: #f4d1ff;
+    --cds-cp-200: #e4a3ff;
+    --cds-cp-300: #d076ff;
+    --cds-cp-400: #be5bff;
+    --cds-cp-500: #981bff; /* Brand Primary */
+    --cds-cp-600: #7613db;
+    --cds-cp-700: #580db7;
+    --cds-cp-800: #3e0893;
+    --cds-cp-900: #2b057a;
+  
+    /* Calaxy Secondary */
+    --cds-cs-100: #d0fde3;
+    --cds-cs-200: #a1fcd0;
+    --cds-cs-300: #72f8c3;
+    --cds-cs-400: #4ef1c1;
+    --cds-cs-500: #17e9bf; /* Brand Secondary */
+    --cds-cs-600: #10c8b5;
+    --cds-cs-700: #0ba7a6;
+    --cds-cs-800: #077c87;
+    --cds-cs-900: #045c6f;
+  
+    /* Calaxy Tertiary */
+    --cds-ct-100: #fdd2d0;
+    --cds-ct-200: #fca2a8;
+    --cds-ct-300: #f77388;
+    --cds-ct-400: #f05079;
+    --cds-ct-500: #e21860; /* Brand Tertiary */
+    --cds-ct-600: #d2196d;
+    --cds-ct-700: #a60d61;
+    --cds-ct-800: #85085a;
+    --cds-ct-900: #6e0454;
+  
+    /* -------------------
+    |
+    |  Neutral Colors
+    |
+    | -------------------- */
+  
+    /* Base */
+    --cds-nd-0: #000000;
+    --cds-nl-0: #ffffff;
+  
+    /* Neutral Dark */
+    --cds-nd-100: #8f9fb5;
+    --cds-nd-200: #808fa3;
+    --cds-nd-300: #5d6f83;
+    --cds-nd-400: #4a5a6f;
+    --cds-nd-500: #364454;
+    --cds-nd-600: #283443;
+    --cds-nd-700: #1b2530;
+    --cds-nd-800: #111820;
+    --cds-nd-900: #0a0e13;
+  
+    /* Neutral Light */
+    --cds-nl-100: #f5f6f7;
+    --cds-nl-200: #e9ecef;
+    --cds-nl-300: #dee3e7;
+    --cds-nl-400: #d3d9df;
+    --cds-nl-500: #c8d0d8;
+    --cds-nl-600: #bdc7d0;
+    --cds-nl-700: #b0bdca;
+    --cds-nl-800: #a4b4c3;
+    --cds-nl-900: #99aabb;
+  
+    /* -------------------
+    |
+    |  UI Colors
+    |
+    | -------------------- */
+  
+    /* Success */
+    --cds-ui-s-300: #82efb9;
+    --cds-ui-s-400: #60dfac;
+    --cds-ui-s-500: #31ca9c;
+    --cds-ui-s-600: #23ad91;
+    --cds-ui-s-700: #189184;
+  
+    /* Information */
+    --cds-ui-i-300: #7df2fe;
+    --cds-ui-i-400: #5de2fd;
+    --cds-ui-i-500: #28cafd;
+    --cds-ui-i-600: #1d9fd9;
+    --cds-ui-i-700: #1478b6;
+  
+    /* Warning */
+    --cds-ui-w-300: #fec96d;
+    --cds-ui-w-400: #feb348;
+    --cds-ui-w-500: #fe8f0c;
+    --cds-ui-w-600: #da7008;
+    --cds-ui-w-700: #b65506;
+  
+    /* Error */
+    --cds-ui-e-300: #f77388;
+    --cds-ui-e-400: #f05079;
+    --cds-ui-e-500: #e21860;
+    --cds-ui-e-600: #d2196d;
+    --cds-ui-e-700: #a60d61;
+  
+    /* -------------------
+    |
+    |  Opacity Colors
+    |
+    | -------------------- */
+  
+    /* Neutral ND-0 */
+    --cds-nd-0-10: rgba(0, 0, 0, 0.1);
+    --cds-nd-0-20: rgba(0, 0, 0, 0.2);
+    --cds-nd-0-30: rgba(0, 0, 0, 0.3);
+    --cds-nd-0-40: rgba(0, 0, 0, 0.4);
+    --cds-nd-0-50: rgba(0, 0, 0, 0.5);
+    --cds-nd-0-60: rgba(0, 0, 0, 0.6);
+    --cds-nd-0-70: rgba(0, 0, 0, 0.7);
+    --cds-nd-0-80: rgba(0, 0, 0, 0.8);
+    --cds-nd-0-90: rgba(0, 0, 0, 0.9);
+  
+    /* Neutral NL-0 */
+    --cds-nl-0-10: rgba(255, 255, 255, 0.1);
+    --cds-nl-0-20: rgba(255, 255, 255, 0.2);
+    --cds-nl-0-30: rgba(255, 255, 255, 0.3);
+    --cds-nl-0-40: rgba(255, 255, 255, 0.4);
+    --cds-nl-0-50: rgba(255, 255, 255, 0.5);
+    --cds-nl-0-60: rgba(255, 255, 255, 0.6);
+    --cds-nl-0-70: rgba(255, 255, 255, 0.7);
+    --cds-nl-0-80: rgba(255, 255, 255, 0.8);
+    --cds-nl-0-90: rgba(255, 255, 255, 0.9);
+  
+    /* Neutral NL-300 */
+    --cds-nl-300-10: rgba(222, 227, 231, 0.1);
+    --cds-nl-300-20: rgba(222, 227, 231, 0.2);
+    --cds-nl-300-30: rgba(222, 227, 231, 0.3);
+    --cds-nl-300-40: rgba(222, 227, 231, 0.4);
+    --cds-nl-300-50: rgba(222, 227, 231, 0.5);
+    --cds-nl-300-60: rgba(222, 227, 231, 0.6);
+    --cds-nl-300-70: rgba(222, 227, 231, 0.7);
+    --cds-nl-300-80: rgba(222, 227, 231, 0.8);
+    --cds-nl-300-90: rgba(222, 227, 231, 0.9);
+  
+    /* Default Font */
+    --cds-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
