@@ -11,6 +11,10 @@ export enum GatewayProvider {
    * Manual Copy and paste of HCS Payload into another system
    */
   CopyAndPaste,
+  /**
+   * Hash Connect Protocol.
+   */
+  HashConnect,
 }
 /**
  * Holds the information necessary to generate a create-ballot message.

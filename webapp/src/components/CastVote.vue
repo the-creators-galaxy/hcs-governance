@@ -21,10 +21,13 @@ function selectVote(index: number) {
 }
 
 function castVote() {
-  castVoteDialog.value.trySubmitCastVote({
-    ballotId: props.ballotId,
-    vote: voteSelection.value,
-  });
+  castVoteDialog.value.trySubmitCastVote(
+    {
+      ballotId: props.ballotId,
+      vote: voteSelection.value,
+    },
+    props.choices[voteSelection.value]
+  );
   voteSelection.value = -1;
 }
 </script>

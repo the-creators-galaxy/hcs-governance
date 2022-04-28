@@ -5,12 +5,16 @@ import { ref, onMounted } from "vue";
 import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import { token, network } from "@/models/info";
+import { submitHcsMessage } from "@/models/hashconnect";
+import HashConnectIcon from "./icons/HashConnectIcon.vue";
 
 let resolveFn: ((value: boolean) => void) | null = null;
 let rejectFn: ((value: string) => void) | null = null;
 
 const dialog = ref<any>();
 const payload = ref<string>();
+const requestSent = ref(false);
+const result = ref<{ success: boolean; description: string } | null>(null);
 
 onMounted(() => {
   dialog.value.addEventListener("cancel", onCancel);
@@ -36,6 +40,8 @@ function trySubmitCreateBallot(
         startTimestamp: floorEpochFromDate(ballotParams.startDate),
         endTimestamp: ceilingEpochFromDate(ballotParams.endDate),
       });
+      requestSent.value = false;
+      result.value = null;
       dialog.value.showModal();
     }
   });
@@ -56,6 +62,43 @@ function onCopyToClipboard() {
   if (dialog.value.open) {
     navigator.clipboard.writeText(payload.value || "");
   }
+}
+
+function onSendToHashconnect() {
+  if (dialog.value.open) {
+    result.value = null;
+    requestSent.value = true;
+    submitHcsMessage(network.value.hcsTopic, payload.value!).then(
+      (response) => {
+        if (response.success) {
+          result.value = {
+            success: true,
+            description: "Ballot Proposal Create Request Sent.",
+          };
+        } else {
+          result.value = {
+            success: false,
+            description: decodeErrorDescription(response.error),
+          };
+        }
+      }
+    );
+  }
+}
+
+function decodeErrorDescription(error: string) {
+  if (typeof error !== "string") {
+    error = JSON.stringify(error);
+  }
+  switch (error) {
+    case "{}":
+      break;
+    case "USER_REJECT":
+      return "The wallet rejected the signing request.";
+    default:
+      return error;
+  }
+  return "The wallet did not provide a description of the reason for the error.";
 }
 
 defineExpose({
@@ -83,6 +126,36 @@ defineExpose({
       <footer>
         <button v-on:click="onCancel">Close</button>
         <button v-on:click="onCopyToClipboard"><CopyPasteIcon /> Copy</button>
+      </footer>
+    </template>
+    <template v-else-if="currentGateway === GatewayProvider.HashConnect">
+      <header>
+        <div>Publish new Proposal Ballot</div>
+        <button class="close" v-on:click="onCancel"></button>
+      </header>
+      <div class="dlg-content">
+        <div v-if="result && result.success">
+          Your ballot proposal was submitted successfully thru HashConnect,
+          please check the list of ballots to confirm it passed validation and
+          listed.
+        </div>
+        <div v-else-if="result">
+          We had errors submitting your ballot proposal to HCS:
+          <b>{{ result.description }}</b>
+        </div>
+        <div v-else-if="requestSent">
+          Waiting for remote wallet to submit your ballot proposal to HCS ...
+        </div>
+        <div v-else>
+          Click the <b>Send</b> button to send ballot proposal to your paired
+          HashConnect wallet to sign and submit to the Hedera Network.
+        </div>
+      </div>
+      <footer>
+        <button v-on:click="onCancel">Close</button>
+        <button v-on:click="onSendToHashconnect" v-bind:disabled="requestSent">
+          <HashConnectIcon /> Send
+        </button>
       </footer>
     </template>
     <template v-else>
