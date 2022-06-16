@@ -8,6 +8,7 @@ import CastVote from "./CastVote.vue";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
 import VotesDisplay from "./VotesDisplay.vue";
+import PossibleLink from "./PossibleLink.vue";
 import { token } from "@/models/info";
 import TallySummary from "./TallySummary.vue";
 
@@ -48,8 +49,12 @@ const summary = computed(() => {
           :proposal="proposal"
         />
       </div>
-      <div class="description">Description: {{ proposal.description }}</div>
-      <div class="discussion">Discussion: {{ proposal.discussion }}</div>
+      <div class="description">
+        Description: <PossibleLink :link="proposal.description" />
+      </div>
+      <div class="discussion">
+        Discussion: <PossibleLink :link="proposal.discussion" />
+      </div>
       <CastVote
         :ballot-id="proposal.consensusTimestamp"
         :choices="proposal.choices"
