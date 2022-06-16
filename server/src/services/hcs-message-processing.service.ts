@@ -31,7 +31,22 @@ export class HcsMessageProcessingService {
 	 * complete before others, keeping the final processing of HCS messages
 	 * in proper order.
 	 */
-	private sequenceTask = Promise.resolve();
+	private currentTask = Promise.resolve();
+	/**
+	 * The current task count.  In order to remain performant and reduce
+	 * excessive TCP connections to mirror nodes, the number of active tasks
+	 * querying the mirror node is limited.  This counter tracks the current
+	 * in-progress tasks processing HCS messages.  When the limit is reached,
+	 * tasks are queued (fifo) and not processed until a processing slot
+	 * becomes available.
+	 */
+	private activeCount = 0;
+	/**
+	 * When the number of pending HCS messages exceeds the current capacity
+	 * limitations, HCS messages are added hear and processed first-in-first-out
+	 * as soon as a processing task slot becomes available.
+	 */
+	private taskQueue = [];
 	/**
 	 * Public constructor, called by the NextJS runtime dependency injection services.
 	 *
@@ -52,33 +67,20 @@ export class HcsMessageProcessingService {
 		private readonly dataService: DataService,
 	) {}
 	/**
-	 * Process a raw HCS native message.  If the message passes initial
-	 * validation checks it is forwarded to the appropriate specialized
-	 * processor.
+	 * Process (or Queues for processing) a raw HCS native message.
+	 * If the message passes initial validation checks it is forwarded
+	 * to the appropriate specialized processor.
 	 *
-	 * Note: processing of a message typically involves two parts.  The first
-	 * part can be done asynchronously performed without referencing state of
-	 * the data storage.  The second part must be done in sequential order of
-	 * messages, and must wait for all other asynchronous processes of messages
-	 * preceding this one to complete.  This method internally orchestrates
-	 * this process, using the `sequenceTask` promise as a linked list of
-	 * promise dependences to ensure processing order.
+	 * Note: the number of concurrent processing tasks is limited to 150.
+	 * This helps reduce TCP congestion during startup/replay of the HCS messages.
 	 *
 	 * @param hcsMessage The raw hcsMessage to be processed.
 	 */
 	processMessage(hcsMessage: IConsensusTopicResponse): void {
-		let previousTask = this.sequenceTask;
-		const thisTask = async () => {
-			const nextTask = await this.getNextTask(hcsMessage);
-			await previousTask;
-			previousTask = null;
-			await nextTask();
-			if (hcsMessage.consensusTimestamp) {
-				const timestamp = `${hcsMessage.consensusTimestamp.seconds}.${hcsMessage.consensusTimestamp.nanos.toString().padStart(6, '0')}`;
-				this.dataService.setLastUpdated(timestamp);
-			}
-		};
-		this.sequenceTask = thisTask();
+		this.taskQueue.push(hcsMessage);
+		if (this.activeCount < 150) {
+			this.processMessageTask(this.taskQueue.shift());
+		}
 	}
 	/**
 	 * When called, inserts a heartbeat message into the stream of tasks
@@ -88,12 +90,12 @@ export class HcsMessageProcessingService {
 	 */
 	processHeartbeat(): void {
 		let thisHeartbeat: Promise<void>;
-		let previousTask = this.sequenceTask;
+		let previousTask = this.currentTask;
 		const thisTask = async () => {
 			await previousTask;
 			previousTask = null;
 			// Only perform a ping if this task is at the end of the queue
-			if (this.sequenceTask === thisHeartbeat) {
+			if (this.currentTask === thisHeartbeat) {
 				const lastProcessedTimestamp = this.dataService.getLastUpdated();
 				const lastHcsMessageTimestamp = await this.mirrorClient.getLatestMessageTimestamp();
 				// If the data store is "behind", we do not want to do anything
@@ -106,7 +108,43 @@ export class HcsMessageProcessingService {
 				}
 			}
 		};
-		this.sequenceTask = thisHeartbeat = thisTask();
+		this.currentTask = thisHeartbeat = thisTask();
+	}
+	/**
+	 * Internal method for processing a raw HCS native message.
+	 * If the message passes initial validation checks it is forwarded
+	 * to the appropriate specialized processor.
+	 *
+	 * Note: processing of a message typically involves two parts.  The first
+	 * part can be done asynchronously performed without referencing state of
+	 * the data storage.  The second part must be done in sequential order of
+	 * messages, and must wait for all other asynchronous processes of messages
+	 * preceding this one to complete.  This method internally orchestrates
+	 * this process, using the `currentTask` promise as a linked list of
+	 * promise dependences to ensure processing order.  Additionall the number
+	 * of concurrent processing tasks is limited to 150.  This helps reduce
+	 * TCP congestion during startup/replay of the HCS messages.
+	 *
+	 * @param hcsMessage The raw hcsMessage to be processed.
+	 */
+	private processMessageTask(hcsMessage: IConsensusTopicResponse): void {
+		this.activeCount = this.activeCount + 1;
+		let previousTask = this.currentTask;
+		const thisTask = async () => {
+			const nextTask = await this.getNextTask(hcsMessage);
+			await previousTask;
+			previousTask = null;
+			await nextTask();
+			if (hcsMessage.consensusTimestamp) {
+				const timestamp = `${hcsMessage.consensusTimestamp.seconds}.${hcsMessage.consensusTimestamp.nanos.toString().padStart(6, '0')}`;
+				this.dataService.setLastUpdated(timestamp);
+			}
+			this.activeCount = this.activeCount - 1;
+			if (this.taskQueue.length > 0) {
+				this.processMessageTask(this.taskQueue.shift());
+			}
+		};
+		this.currentTask = thisTask();
 	}
 	/**
 	 * Internal helper function returning a resolved promise for those HCS
