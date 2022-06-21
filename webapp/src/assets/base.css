@@ -1,5 +1,5 @@
 @import 'brand.css';
-@import 'vue3-date-time-picker/dist/main.css';
+@import '@vuepic/vue-datepicker/dist/main.css';
 @import 'vue3-date-time-picker-override.css';
 
 html, body {

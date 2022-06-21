@@ -1,4 +1,4 @@
-import type { IConsensusTopicResponse } from '@hashgraph/proto';
+import * as proto from '@hashgraph/proto';
 import { Injectable, Logger } from '@nestjs/common';
 import { Ballot } from 'src/models/ballot';
 import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
@@ -51,7 +51,11 @@ export class HcsBallotProcessingService {
 	 * is complete (regardless of whether it was found to be valid and added to the
 	 * list of proposed ballots).
 	 */
-	processMessage(hcsMessage: IConsensusTopicResponse, hcsMirrorRecord: HcsMessageMirrorRecord, hcsPayload: any): () => Promise<void> {
+	processMessage(
+		hcsMessage: proto.com.hedera.mirror.api.proto.IConsensusTopicResponse,
+		hcsMirrorRecord: HcsMessageMirrorRecord,
+		hcsPayload: any,
+	): () => Promise<void> {
 		const ballot: Ballot = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp,
 			tokenId: hcsPayload.tokenId,

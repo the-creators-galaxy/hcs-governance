@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IConsensusTopicResponse } from '@hashgraph/proto';
+import * as hapi from '@hashgraph/proto';
 import { HcsBallotProcessingService } from './hcs-ballot-processing.service';
 import { MirrorClientService } from './mirror-client.service';
 import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
@@ -76,7 +76,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param hcsMessage The raw hcsMessage to be processed.
 	 */
-	processMessage(hcsMessage: IConsensusTopicResponse): void {
+	processMessage(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): void {
 		this.taskQueue.push(hcsMessage);
 		if (this.activeCount < 150) {
 			this.processMessageTask(this.taskQueue.shift());
@@ -127,7 +127,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param hcsMessage The raw hcsMessage to be processed.
 	 */
-	private processMessageTask(hcsMessage: IConsensusTopicResponse): void {
+	private processMessageTask(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): void {
 		this.activeCount = this.activeCount + 1;
 		let previousTask = this.currentTask;
 		const thisTask = async () => {
@@ -175,7 +175,7 @@ export class HcsMessageProcessingService {
 	 * while it is still asynchronous, processing of downstream messages
 	 * will block until the returned method resolves its promise.
 	 */
-	private async getNextTask(hcsMessage: IConsensusTopicResponse): Promise<() => Promise<void>> {
+	private async getNextTask(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): Promise<() => Promise<void>> {
 		const hcsPayload = this.parsePayload(hcsMessage);
 		if (!hcsPayload) {
 			return this.discardMessage;
@@ -203,7 +203,7 @@ export class HcsMessageProcessingService {
 	 * @returns A JSON object representing the CGIP-4 message payload,
 	 * or null if the message was invalid or no payload was found.
 	 */
-	private parsePayload(hcsMessage: IConsensusTopicResponse): any | null {
+	private parsePayload(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): any | null {
 		let hcsPayloadAsString: string;
 		let hcsPayload: any;
 		if (hcsMessage.chunkInfo) {

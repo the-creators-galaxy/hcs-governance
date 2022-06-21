@@ -1,4 +1,4 @@
-import { ITopicID } from '@hashgraph/proto';
+import * as hapi from '@hashgraph/proto';
 import * as Long from 'long';
 /**
  * Constructs an `@hedera/protobuf` from the 0.0.123 format.
@@ -7,7 +7,7 @@ import * as Long from 'long';
  *
  * @returns an `ITopicID` object representing the specified address.
  */
-export function topicIdFromString(value: string): ITopicID {
+export function topicIdFromString(value: string): hapi.proto.ITopicID {
 	if (/^\d+\.\d+\.\d+$/.test(value)) {
 		const parts = value.split('.');
 		return {
