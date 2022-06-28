@@ -1,4 +1,4 @@
-import type { IConsensusTopicResponse } from '@hashgraph/proto';
+import * as hapi from '@hashgraph/proto';
 import { Injectable, Logger } from '@nestjs/common';
 import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
 import { Vote } from 'src/models/vote';
@@ -51,7 +51,11 @@ export class HcsVoteProcessingService {
 	 * is complete (regardless of whether it was found to be valid and added to the
 	 * list of proposed ballots).
 	 */
-	processMessage(hcsMessage: IConsensusTopicResponse, hcsMirrorRecord: HcsMessageMirrorRecord, hcsPayload: any): () => Promise<void> {
+	processMessage(
+		hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse,
+		hcsMirrorRecord: HcsMessageMirrorRecord,
+		hcsPayload: any,
+	): () => Promise<void> {
 		const ballotId = hcsPayload.ballotId;
 		const vote: Vote = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp,

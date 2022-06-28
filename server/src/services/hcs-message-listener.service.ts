@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Timeout } from '@nestjs/schedule';
 import { Client, ChannelCredentials } from '@grpc/grpc-js';
-import { ConsensusTopicQuery, ConsensusTopicResponse } from '@hashgraph/proto';
+import * as proto from '@hashgraph/proto';
 import { NetworkConfigurationService } from './network-configuration.service';
 import { topicIdFromString } from 'src/util/proto';
 import { HcsMessageProcessingService } from './hcs-message-processing.service';
@@ -44,7 +44,7 @@ export class HcsMessageListenerService {
 	@Timeout(2500)
 	processHcsMessages(): void {
 		this.logger.log('Starting HCS Topic Listener');
-		const topicQuery = ConsensusTopicQuery.encode({
+		const topicQuery = proto.com.hedera.mirror.api.proto.ConsensusTopicQuery.encode({
 			topicID: topicIdFromString(this.network.hcsTopic),
 			consensusStartTime: { seconds: null },
 			consensusEndTime: null,
@@ -55,7 +55,7 @@ export class HcsMessageListenerService {
 			.makeServerStreamRequest(
 				'/com.hedera.mirror.api.proto.ConsensusService/subscribeTopic',
 				(query) => Buffer.from(query),
-				ConsensusTopicResponse.decode,
+				proto.com.hedera.mirror.api.proto.ConsensusTopicResponse.decode,
 				topicQuery,
 			)
 			.on('data', this.onData.bind(this))
@@ -69,7 +69,7 @@ export class HcsMessageListenerService {
 	 *
 	 * @param hcsMessage The raw message received from the mirror node.
 	 */
-	private onData(hcsMessage: ConsensusTopicResponse): void {
+	private onData(hcsMessage: proto.com.hedera.mirror.api.proto.ConsensusTopicResponse): void {
 		this.processor.processMessage(hcsMessage);
 	}
 	/**
