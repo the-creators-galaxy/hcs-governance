@@ -18,13 +18,13 @@ defineProps<{ proposal: Proposal | ProposalDetail }>();
       :amount="proposal.tally[proposal.winner]"
       :decimals="token.decimals"
     />
-    ${{ token.symbol }}
+    <span class="symbol">${{ token.symbol }}    </span>
     <span class="checksum">[{{ proposal.checksum }}]</span>
   </div>
   <div v-else class="indeterminate">
     <IndeterminateIcon />
     <template v-if="proposal.checksum">
-      No Majority Vote
+      <span class="symbol">No Majority Vote</span>
       <span class="checksum">[{{ proposal.checksum }}]</span>
     </template>
     <template v-else> Results Unknown </template>
@@ -38,8 +38,15 @@ div {
 div.indeterminate {
   color: var(--cds-nl-0-60);
 }
+span.symbol::before {
+  content: ' ';
+}
+span.symbol::after {
+  display: inline-block;
+  content: ' ';
+  width: 2rem;
+}
 span.checksum {
-  margin-left: 1rem;
   color: var(--cds-nl-0-60);
   user-select: all;
 }

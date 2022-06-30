@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import MainAside from "../components/MainAside.vue";
+import NavigationContainer from "../components/NavigationContainer.vue";
 import ProposalCard from "../components/ProposalCard.vue";
 import { type Proposal, getProposals } from "../models/proposal";
 import { RouterLink } from "vue-router";
@@ -11,9 +11,7 @@ getProposals().then((i) => (proposals.value = i));
 </script>
 
 <template>
-  <main>
-    <MainAside />
-    <section>
+  <NavigationContainer>
       <h2>Proposals</h2>
       <ul>
         <li v-for="proposal in proposals" :key="proposal.consensusTimestamp">
@@ -27,43 +25,21 @@ getProposals().then((i) => (proposals.value = i));
           </RouterLink>
         </li>
       </ul>
-    </section>
-  </main>
+  </NavigationContainer>
 </template>
 
 <style scoped>
-main {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  overflow: hidden;
-}
-section {
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  margin: 2rem 0 0 3rem;
-  padding: 0;
-  row-gap: 1.5rem;
-  align-content: start;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-ul {
-  display: grid;
-  grid-template-rows: max-content;
-  margin: 0;
-  padding: 0 2rem 2rem 0;
-  row-gap: 1.25rem;
-  align-content: start;
-  list-style-type: none;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-li {
+ul {  
   display: block;
   margin: 0;
   padding: 0;
 }
-li:hover article {
+li {
+  display: block;
+  margin: 1.25rem 0;
+  padding: 0;
+}
+li:hover {
   background-color: var(--cds-nl-0-10);
 }
 li > a {
@@ -75,5 +51,12 @@ h2 {
   font-weight: 700;
   font-size: 1.3125rem;
   color: var(--cds-nl-0);
+}
+@media (max-width: 375px) {
+  h2 {
+    font-weight: 700;
+    font-size: 1.21875rem;
+    padding: 1.625rem 1.25rem 0.125rem 1.25rem;
+  }
 }
 </style>

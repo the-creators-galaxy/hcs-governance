@@ -110,4 +110,9 @@ defineExpose({
 .dlg-content {
   padding: 1.25rem 5.25rem;
 }
+@media (max-width: 540px) {
+  .dlg-content {
+    padding: 1.25rem 0;
+  }
+}
 </style>
