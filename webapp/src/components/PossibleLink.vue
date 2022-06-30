@@ -25,11 +25,10 @@ const data = computed(() => {
 <style scoped>
 a {
   user-select: text;
-  color: var(--cds-nd-200);
+  color: var(--cds-cs-500);
   text-decoration: none;
 }
 a:hover {
-  color: var(--cds-cp-400);
   text-decoration: underline;
 }
 span {
