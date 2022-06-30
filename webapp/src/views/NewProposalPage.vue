@@ -8,6 +8,7 @@ import type { BallotCreateParams } from "@/models/gateway";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
 import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
+import { trimOptionalText } from '@/models/text';
 import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
 import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
@@ -36,8 +37,6 @@ const isPublishable = computed(() => {
   const candidate = ballot.value;
   return (
     candidate.title &&
-    candidate.description &&
-    candidate.discussion &&
     candidate.startDate &&
     candidate.endDate &&
     currentGateway.value !== GatewayProvider.None
@@ -58,8 +57,8 @@ function showPreview() {
     consensusTimestamp: "0000000.0000000",
     author: "0.0.<payer>",
     title: ballot.value.title || "<Title TBD>",
-    description: ballot.value.description || "<Description URL TBD>",
-    discussion: ballot.value.discussion || "<Discussion URL TBD>",
+    description: trimOptionalText(ballot.value.description),
+    discussion: trimOptionalText(ballot.value.discussion),
     scheme: "single-choice",
     choices: ["Yes", "No"],
     expires: 7,
@@ -94,9 +93,9 @@ function tryPublish() {
       <div class="edit-container">
         <div class="left-side">
           <BackLink />
-          <input placeholder="Proposal Title" class="title" v-model="ballot.title" />
-          <input placeholder="Proposal Description (url)" v-model="ballot.description" />
-          <input placeholder="Proposal Discussion (url)" v-model="ballot.discussion" />
+          <input placeholder="Proposal Title (required)" class="title" v-model="ballot.title" />
+          <input placeholder="Description (optional https/ipfs link or brief text)" v-model="ballot.description" />
+          <input placeholder="Discussion (optional https/ipfs link or brief text)" v-model="ballot.discussion" />
           <ButtonPanel>
             <template #header>Choices</template>
             <button disabled>Single choice voting</button>

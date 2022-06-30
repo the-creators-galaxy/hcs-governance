@@ -3,6 +3,7 @@ import { currentGateway, GatewayProvider } from "@/models/gateway";
 import type { BallotCreateParams } from "@/models/gateway";
 import { ref, onMounted } from "vue";
 import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
+import { trimOptionalText } from '@/models/text';
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import { token, network } from "@/models/info";
 import { submitHcsMessage } from "@/models/hashconnect";
@@ -33,8 +34,8 @@ function trySubmitCreateBallot(
         type: "create-ballot",
         tokenId: token.value.id,
         title: ballotParams.title,
-        description: ballotParams.description,
-        discussion: ballotParams.discussion,
+        description: trimOptionalText(ballotParams.description),
+        discussion: trimOptionalText(ballotParams.discussion),
         scheme: "single-choice",
         choices: ["Yes", "No"],
         startTimestamp: floorEpochFromDate(ballotParams.startDate),
@@ -125,7 +126,9 @@ defineExpose({
       </div>
       <footer>
         <button v-on:click="onCancel">Close</button>
-        <button v-on:click="onCopyToClipboard"><CopyPasteIcon /> Copy</button>
+        <button v-on:click="onCopyToClipboard">
+          <CopyPasteIcon /> Copy
+        </button>
       </footer>
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
@@ -181,16 +184,20 @@ defineExpose({
   padding: 1.25rem 1.5rem;
   min-width: min(90vw, 28rem);
 }
-.dlg-content > div {
+
+.dlg-content>div {
   max-width: min(90vw, 28rem);
 }
+
 .single {
   grid-template-columns: 1fr;
 }
+
 .topic {
   user-select: all;
   color: var(--cds-nl-0);
 }
+
 .payload {
   user-select: all;
   word-wrap: break-word;
