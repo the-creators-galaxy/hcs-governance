@@ -43,6 +43,10 @@ export interface NetworkInfo {
    */
   hcsTopic: string;
   /**
+   * If configured, the startup date & time filter for processing messages.
+   */
+  hcsStartDate: string;
+  /**
    * The web software user interface version.
    */
   uiVersion: string;
@@ -68,6 +72,7 @@ export const network = ref<NetworkInfo>({
   mirrorGrpc: "",
   mirrorRest: "",
   hcsTopic: "",
+  hcsStartDate: "",
   uiVersion: __APP_VERSION__,
   apiVersion: "",
 });
@@ -86,6 +91,7 @@ export async function refreshInfo(): Promise<void> {
     mirrorGrpc: json.mirrorGrpc,
     mirrorRest: json.mirrorRest,
     hcsTopic: json.hcsTopic,
+    hcsStartDate: json.hcsStartDate,
     uiVersion: __APP_VERSION__,
     apiVersion: json.version,
   };

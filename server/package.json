@@ -1,6 +1,6 @@
 {
   "name": "governance-api",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Ballot Governance Aggregator",
   "author": "Calaxy, Inc.",
   "private": true,
