@@ -5,6 +5,7 @@ import * as proto from '@hashgraph/proto';
 import { NetworkConfigurationService } from './network-configuration.service';
 import { topicIdFromString } from 'src/util/proto';
 import { HcsMessageProcessingService } from './hcs-message-processing.service';
+import { epochToTimestamp } from 'src/util/epoch';
 /**
  * Receives raw HCS messages from a mirror node for a given
  * topic and dispatches the incoming messages to the message
@@ -44,9 +45,14 @@ export class HcsMessageListenerService {
 	@Timeout(2500)
 	processHcsMessages(): void {
 		this.logger.log('Starting HCS Topic Listener');
+		const consensusStartTime = epochToTimestamp(this.network.hcsStartDate);
+		if (consensusStartTime.seconds && consensusStartTime.seconds.isPositive()) {
+			this.logger.log(`Skipping HCS Messages prior to ${this.network.hcsStartDate}`);
+			this.processor.setStartupTimestamp(this.network.hcsStartDate);
+		}
 		const topicQuery = proto.com.hedera.mirror.api.proto.ConsensusTopicQuery.encode({
 			topicID: topicIdFromString(this.network.hcsTopic),
-			consensusStartTime: { seconds: null },
+			consensusStartTime,
 			consensusEndTime: null,
 			limit: null,
 		}).finish();

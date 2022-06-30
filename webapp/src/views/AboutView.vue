@@ -24,6 +24,9 @@ onMounted(async () => {
       <dd>
         <EpochDateDisplay :value="lastUpdated"></EpochDateDisplay>
       </dd>
+      <template v-if="network.hcsStartDate">
+        <dd>(Proposals created before <EpochDateDisplay class="inline" :value="network.hcsStartDate"></EpochDateDisplay> are not included)</dd>
+      </template>
       <dt>Hedera Network</dt>
       <dd>{{ network.network }}</dd>
       <dt>Source Mirror Node</dt>
@@ -93,5 +96,8 @@ h2 {
     border-right: none;
     border-radius: 0;
   }
+}
+.inline {
+  display: inline-block;
 }
 </style>

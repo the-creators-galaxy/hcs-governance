@@ -12,3 +12,4 @@ services:
       - MIRROR_REST=${MIRROR_REST}
       - HCS_TOPIC=${HCS_TOPIC}
       - HTS_TOKEN=${HTS_TOKEN}
+      - HCS_START_DATE=${HCS_START_DATE}

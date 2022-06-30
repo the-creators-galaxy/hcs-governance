@@ -36,6 +36,7 @@ export class AppController {
 			mirrorRest: this.config.mirrorRest,
 			htsToken: this.tokenInfo,
 			hcsTopic: this.config.hcsTopic,
+			hcsStartDate: this.config.hcsStartDate,			
 			lastUpdated: this.dataService.getLastUpdated(),
 			version: process.env.npm_package_version || 'unknown',
 		};

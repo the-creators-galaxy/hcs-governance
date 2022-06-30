@@ -111,6 +111,17 @@ export class HcsMessageProcessingService {
 		this.currentTask = thisHeartbeat = thisTask();
 	}
 	/**
+	 * When called, updates the data service with the specified timestamp,
+	 * essentially jumping ahead in time.  This exists to support the feature
+	 * where the service can ignore proposal ballots before a specified
+	 * startup moment in time.
+	 *
+	 * @param timestamp the HAPI Epoch encoded startup timestamp.
+	 */
+	setStartupTimestamp(timestamp: string) {
+		this.dataService.setLastUpdated(timestamp);
+	}
+	/**
 	 * Internal method for processing a raw HCS native message.
 	 * If the message passes initial validation checks it is forwarded
 	 * to the appropriate specialized processor.

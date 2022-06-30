@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { epochFromDate } from 'src/util/epoch';
 /**
  * Service instance that parses and validates configuration information
  * used during startup and for other system functions.
@@ -27,6 +28,10 @@ export class NetworkConfigurationService {
 	 */
 	public readonly hcsToken: string;
 	/**
+	 * The consensus time at which to start processing HCS messages.
+	 */
+	public readonly hcsStartDate: string;
+	/**
 	 * Public constructor, called by the NextJS runtime dependency
 	 * injection services.  Validates basic configuration variables,
 	 * throwing an error if any portion of the configuration is invalid
@@ -41,12 +46,20 @@ export class NetworkConfigurationService {
 		this.mirrorRest = configService.get<string>('MIRROR_REST');
 		this.hcsTopic = configService.get<string>('HCS_TOPIC');
 		this.hcsToken = configService.get<string>('HTS_TOKEN');
+		this.hcsStartDate = configService.get<string>('HCS_START_DATE');
 		const errors = [];
 		if (!/^\d+\.\d+\.\d+$/.test(this.hcsTopic)) {
 			errors.push('Invalid HCS Topic in configuration.');
 		}
 		if (!/^\d+\.\d+\.\d+$/.test(this.hcsToken)) {
 			errors.push('Invalid HCS Token in configuration.');
+		}
+		if (this.hcsStartDate) {
+			if (!/^\d+\.\d+$/.test(this.hcsStartDate)) {
+				errors.push('Invalid HCS Starting Date in configuration.');
+			} else if (this.hcsStartDate > epochFromDate(new Date())) {
+				errors.push('Invalid HCS Starting Date, value can not be in the future.');
+			}
 		}
 		if (errors.length > 0) {
 			throw Error(`Invalid Configuration: ${errors.join(', ')}`);
@@ -56,5 +69,7 @@ export class NetworkConfigurationService {
 		this.logger.log(`Mirror Node REST: ${this.mirrorRest}`);
 		this.logger.log(`HCS Topic: ${this.hcsTopic}`);
 		this.logger.log(`HTS Token: ${this.hcsToken}`);
+		this.logger.log(`HTS Starting Date: ${this.hcsStartDate || 'Read Entire HCS Stream'}`);
+		this.logger.log(`API Service Port: ${process.env.PORT || 80}`);
 	}
 }
