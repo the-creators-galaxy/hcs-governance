@@ -11,6 +11,7 @@ import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
 import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
 import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
+import LeafPageContainer from "../components/LeafPageContainer.vue";
 
 const dateDialog = ref<any>();
 const submitDialog = ref<any>();
@@ -82,94 +83,92 @@ function tryPublish() {
 </script>
 
 <template>
-  <main v-if="preview" class="preview-container">
-    <div>
-      <a class="back" v-on:click="hidePreview">Edit</a>
-    </div>
-    <ProposalDetailView :proposal="preview" :hide-back-button="true" />
-  </main>
-  <main v-else>
-    <section>
-      <BackLink />
-      <input
-        placeholder="Proposal Title"
-        class="title"
-        v-model="ballot.title"
-      />
-      <input
-        placeholder="Proposal Description (url)"
-        v-model="ballot.description"
-      />
-      <input
-        placeholder="Proposal Discussion (url)"
-        v-model="ballot.discussion"
-      />
-      <ButtonPanel>
-        <template #header>Choices</template>
-        <button disabled>Single choice voting</button>
-        <div class="choice">
-          <span class="number">1</span>
-          <span class="text">Yes</span>
-          <button class="close" disabled></button>
+  <LeafPageContainer>
+    <template v-if="preview">
+      <div class="preview-back">
+        <a class="back" v-on:click="hidePreview">Edit</a>
+      </div>
+      <ProposalDetailView :proposal="preview" :hide-back-button="true" />
+    </template>
+    <template v-else>
+      <div class="edit-container">
+        <div class="left-side">
+          <BackLink />
+          <input placeholder="Proposal Title" class="title" v-model="ballot.title" />
+          <input placeholder="Proposal Description (url)" v-model="ballot.description" />
+          <input placeholder="Proposal Discussion (url)" v-model="ballot.discussion" />
+          <ButtonPanel>
+            <template #header>Choices</template>
+            <button disabled>Single choice voting</button>
+            <div class="choice">
+              <span class="number">1</span>
+              <span class="text">Yes</span>
+              <button class="close" disabled></button>
+            </div>
+            <div class="choice">
+              <span class="number">2</span>
+              <span class="text">No</span>
+              <button class="close" disabled></button>
+            </div>
+            <button disabled>Add Choice</button>
+          </ButtonPanel>
+          <BorderPanel>
+            <template #header>Voting Period</template>
+            <div class="calendar-buttons">
+              <button v-on:click="onPickRange">
+                <span class="label">Starting</span>
+                <span class="value">{{ startVotingDisplay }}</span>
+              </button>
+              <button v-on:click="onPickRange">
+                <span class="label">Thru</span>
+                <span class="value">{{ endVotingDisplay }}</span>
+              </button>
+            </div>
+          </BorderPanel>
         </div>
-        <div class="choice">
-          <span class="number">2</span>
-          <span class="text">No</span>
-          <button class="close" disabled></button>
+        <div class="right-side">
+          <ButtonPanel class="aside">
+            <button round v-on:click="showPreview">Preview</button>
+            <button round :disabled="!isPublishable" v-on:click="tryPublish">
+              Publish
+            </button>
+          </ButtonPanel>
         </div>
-        <button disabled>Add Choice</button>
-      </ButtonPanel>
-      <BorderPanel>
-        <template #header>Voting Period</template>
-        <div class="calendar-buttons">
-          <button v-on:click="onPickRange">
-            <span class="label">Starting</span>
-            <span class="value">{{ startVotingDisplay }}</span>
-          </button>
-          <button v-on:click="onPickRange">
-            <span class="label">Thru</span>
-            <span class="value">{{ endVotingDisplay }}</span>
-          </button>
-        </div>
-      </BorderPanel>
-    </section>
-    <ButtonPanel class="aside">
-      <button round v-on:click="showPreview">Preview</button>
-      <button round :disabled="!isPublishable" v-on:click="tryPublish">
-        Publish
-      </button>
-    </ButtonPanel>
-  </main>
+      </div>
+    </template>
+  </LeafPageContainer>
   <DateRangeDialog ref="dateDialog" />
   <SubmitProposalDialog ref="submitDialog" />
 </template>
 
 <style scoped>
-main {
+.edit-container {
   display: grid;
   grid-template-columns: 1fr max-content;
   column-gap: 3rem;
-  margin: 2rem 8rem;
+  overflow: hidden;
 }
-section {
+
+.left-side {
   display: grid;
   grid-template-columns: 1fr;
-  align-items: start;
-  align-self: start;
+  row-gap: 0.5rem;
+  overflow: hidden;
 }
-section > .panel {
+
+.left-side>div.panel {
   margin-bottom: 1.5rem;
 }
-input {
-  margin-bottom: 0.5rem;
-}
-.aside {
-  align-self: start;
+
+.right-side {
   min-width: 20rem;
+  overflow: hidden;
 }
+
 .text {
   color: var(--cds-nd-200);
 }
+
 .choice {
   display: grid;
   grid-template-columns: max-content 1fr max-content;
@@ -179,15 +178,18 @@ input {
   border: 1px solid var(--cds-nd-600);
   border-radius: 2.25rem;
 }
+
 .title {
   font-size: 1.33125rem;
 }
+
 .calendar-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
   column-gap: 1rem;
 }
-.calendar-buttons > button {
+
+.calendar-buttons>button {
   padding: 1rem 13.5px;
   text-align: left;
   display: grid;
@@ -198,17 +200,37 @@ input {
   background-position: right 1rem center;
   background-size: 24px;
 }
+
 .calendar-buttons .label {
   font-size: 0.875rem;
   color: var(--cds-nd-200);
 }
+
 .calendar-buttons .value {
   font-size: 0.875rem;
 }
-.preview-container {
-  display: block;
+
+@media (max-width: 1024px) {
+  .edit-container {
+    display: block;
+  }
 }
-.preview-container > main {
-  margin: 0;
+
+@media (max-width: 540px) {
+  .calendar-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-gap: 1rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .preview-back,
+  .left-side>a,
+  .left-side>input {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
+  }
 }
 </style>

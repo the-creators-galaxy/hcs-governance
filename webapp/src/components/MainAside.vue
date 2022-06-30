@@ -15,12 +15,12 @@ import { RouterLink } from "vue-router";
 
 <style scoped>
 aside {
-  margin: 2rem 0 0 8rem;
-  width: 20rem;
-  align-self: flex-start;
+  margin: 0;
+  width: min(20vw, 20rem);
   border: 1px solid var(--cds-nd-600);
   border-radius: 0.75rem;
 }
+
 header {
   text-align: center;
   font-weight: 700;
@@ -32,9 +32,11 @@ header {
   background-repeat: no-repeat;
   background-position: center top 2rem;
 }
+
 nav {
   margin: 1.5rem 0;
 }
+
 a {
   color: var(--cds-nl-0);
   text-decoration: none;
@@ -43,9 +45,11 @@ a {
   padding: 0.5rem 1.5rem;
   display: block;
 }
+
 a:hover {
   background-color: var(--cds-nl-0-20);
 }
+
 .router-link-active {
   box-shadow: inset 4px 0px 0px 0px var(--cds-cs-500);
 }

@@ -3,11 +3,13 @@ import { ref, onMounted } from "vue";
 import { currentGateway, GatewayProvider } from "@/models/gateway";
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
+import WalletIcon from "./icons/WalletIcon.vue";
 import {
   hashconnectInfo,
   initializeHashconnect,
   openPairRequest,
 } from "@/models/hashconnect";
+
 const dialog = ref<any>();
 const paringString = ref<string>();
 
@@ -55,20 +57,17 @@ onMounted(() => {
 
 <template>
   <header class="main">
-    <button
-      v-if="currentGateway === GatewayProvider.CopyAndPaste"
-      v-on:click="onConnectWallet"
-    >
-      <CopyPasteIcon /> Copy / Paste JSON
+    <button v-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
+      <CopyPasteIcon />
+      <span class="btn-text">Copy / Paste JSON</span>
     </button>
-    <button
-      v-else-if="currentGateway === GatewayProvider.HashConnect"
-      v-on:click="onConnectWallet"
-    >
-      <HashConnectIcon /> HashConnect
+    <button v-else-if="currentGateway === GatewayProvider.HashConnect" v-on:click="onConnectWallet">
+      <HashConnectIcon />
+      <span class="btn-text">HashConnect</span>
     </button>
     <button v-else class="secondary" v-on:click="onConnectWallet">
-      Connect Wallet
+      <WalletIcon class="btn-icon" />
+      <span class="btn-text">Connect Wallet</span>
     </button>
   </header>
   <dialog ref="dialog">
@@ -78,17 +77,19 @@ onMounted(() => {
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
-        <button v-on:click="selectCopyPaste">
-          <CopyPasteIcon /> Copy / Paste JSON
-        </button>
         <button v-on:click="selectHashConnect">
           <HashConnectIcon /> HashConnect
+        </button>
+        <button v-on:click="selectCopyPaste">
+          <CopyPasteIcon /> Copy / Paste JSON
         </button>
       </div>
     </template>
     <template v-else-if="currentGateway === GatewayProvider.CopyAndPaste">
       <header>
-        <div><CopyPasteIcon /> Copy / Paste JSON</div>
+        <div>
+          <CopyPasteIcon /> Copy / Paste JSON
+        </div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -103,7 +104,9 @@ onMounted(() => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
       <header>
-        <div><HashConnectIcon /> HashConnect</div>
+        <div>
+          <HashConnectIcon /> HashConnect
+        </div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -134,13 +137,10 @@ onMounted(() => {
             </button>
           </template>
         </div>
-        <button
-          v-if="
-            currentGateway === GatewayProvider.HashConnect &&
-            hashconnectInfo.pairedWallet
-          "
-          v-on:click="changeHashconnectWallet"
-        >
+        <button v-if="
+          currentGateway === GatewayProvider.HashConnect &&
+          hashconnectInfo.pairedWallet
+        " v-on:click="changeHashconnectWallet">
           Change HashConnect Wallet
         </button>
         <button v-on:click="currentGateway = GatewayProvider.None">
@@ -162,27 +162,31 @@ onMounted(() => {
 <style scoped>
 header.main {
   text-align: right;
-  padding: 1.25rem 8rem;
-  border-bottom: 1px solid var(--cds-nd-600);
+  padding: 1.5rem clamp(1.25rem, 19.72265vw - 73.959938px, 8rem);
   background-image: url("@/assets/logo.svg");
   background-repeat: no-repeat;
-  background-position: 8rem center;
+  background-position: clamp(1.25rem, 19.72265vw - 73.959938px, 8rem) center;
   background-size: auto calc(100% - 2.5rem);
+  border-bottom: 1px solid var(--cds-nd-600);
 }
-header.main > button {
+
+header.main>button {
   padding: 0.375rem 1rem;
 }
+
 .dlg-content {
   display: grid;
   grid-template-columns: 1fr;
   row-gap: 1rem;
   padding: 1.25rem 1.5rem;
-  min-width: min(90vw, 28rem);
 }
+
 .description {
-  max-width: min(90vw, 28rem);
   margin-bottom: 1rem;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
+
 .description dl {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -191,6 +195,7 @@ header.main > button {
   row-gap: 0.25rem;
   font-size: 0.875;
 }
+
 .description dd {
   color: var(--cds-nl-0);
 }
@@ -203,5 +208,40 @@ header.main > button {
 .copy {
   float: right;
   margin-left: 1rem;
+}
+
+.btn-icon {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  header.main {
+    background-color: var(--cds-nd-800);
+  }
+}
+
+@media (max-width: 540px) {
+  header.main>button {
+    width: 2rem;
+  }
+
+  header.main>button>* {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  header.main>button>span.btn-text {
+    display: none;
+  }
+
+  .btn-icon {
+    display: inline-block;
+  }
+}
+
+@media (max-width: 320px) {
+  header.main {
+    background-size: calc(100% - 7.35rem) auto;
+  }
 }
 </style>
