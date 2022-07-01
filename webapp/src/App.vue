@@ -32,11 +32,13 @@ div.top-header {
   top: 0;
   left: 0;
   right: 0;
+  z-index: 2;
   background-color: var(--cds-nd-800);
 }
 
 div.main-content {
   margin: 0;
   padding: 5rem 0 0 0;
+  z-index: 1;
 }
 </style>
