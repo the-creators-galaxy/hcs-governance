@@ -136,7 +136,7 @@ select {
 input:focus,
 select:focus {
 	outline: none;
-	box-shadow: 0px 0px 0px 1px var(--cds-nl-500), 0px 0px 0px 4px var(--cds-nd-600);
+	box-shadow: inset 0px 0px 0px 3px var(--cds-nd-600), inset 0px 0px 0px 4px var(--cds-nl-500);
 }
 
 input::placeholder {
