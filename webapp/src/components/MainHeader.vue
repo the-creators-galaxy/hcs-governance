@@ -12,6 +12,7 @@ import {
 
 const dialog = ref<any>();
 const paringString = ref<string>();
+const supportsDialog = ref<boolean>(typeof HTMLDialogElement === 'function');
 
 async function onConnectWallet() {
   dialog.value.showModal();
@@ -57,7 +58,11 @@ onMounted(() => {
 
 <template>
   <header class="main">
-    <button v-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
+    <button v-if="!supportsDialog" disabled>
+      <span class="btn-icon">RO</span>
+      <span class="btn-text">Read Only</span>
+    </button>
+    <button v-else-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
       <CopyPasteIcon />
       <span class="btn-text">Copy / Paste JSON</span>
     </button>
