@@ -60,3 +60,5 @@ export interface CastVoteParams {
 }
 
 export const currentGateway = ref<GatewayProvider>(GatewayProvider.None);
+
+export const signalConnectWallet = ref<boolean>(false);

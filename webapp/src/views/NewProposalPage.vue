@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { currentGateway, GatewayProvider } from "@/models/gateway";
+import {
+  currentGateway,
+  GatewayProvider,
+  signalConnectWallet,
+} from "@/models/gateway";
 import BackLink from "@/components/BackLink.vue";
 import DateRangeDialog from "../components/DateRangeDialog.vue";
 import ProposalDetailView from "@/components/ProposalDetailView.vue";
@@ -8,7 +12,7 @@ import type { BallotCreateParams } from "@/models/gateway";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
 import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
-import { trimOptionalText } from '@/models/text';
+import { trimOptionalText } from "@/models/text";
 import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
 import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
@@ -18,6 +22,7 @@ const dateDialog = ref<any>();
 const submitDialog = ref<any>();
 const ballot = ref<Partial<BallotCreateParams>>({});
 const preview = ref<ProposalDetail>();
+const validationErrors = ref<any>({});
 
 const startVotingDisplay = computed(() => {
   if (ballot.value.startDate) {
@@ -31,16 +36,6 @@ const endVotingDisplay = computed(() => {
     return ballot.value.endDate.toDateString();
   }
   return "not set";
-});
-
-const isPublishable = computed(() => {
-  const candidate = ballot.value;
-  return (
-    candidate.title &&
-    candidate.startDate &&
-    candidate.endDate &&
-    currentGateway.value !== GatewayProvider.None
-  );
 });
 
 function onPickRange() {
@@ -77,7 +72,18 @@ function hidePreview() {
 }
 
 function tryPublish() {
-  submitDialog.value.trySubmitCreateBallot(ballot.value);
+  const errors: any = {};
+  const candidate = ballot.value;
+  errors.title = !candidate.title || !candidate.title.trim();
+  errors.votingPeriod = !candidate.startDate || !candidate.endDate;
+  validationErrors.value = errors;
+  if (!errors.title && !errors.votingPeriod) {
+    if (currentGateway.value === GatewayProvider.None) {
+      signalConnectWallet.value = true;
+    } else {
+      submitDialog.value.trySubmitCreateBallot(ballot.value);
+    }
+  }
 }
 </script>
 
@@ -93,9 +99,22 @@ function tryPublish() {
       <div class="edit-container">
         <div class="left-side">
           <BackLink />
-          <input placeholder="Proposal Title (required)" class="title" v-model="ballot.title" />
-          <input placeholder="Description (optional https/ipfs link or brief text)" v-model="ballot.description" />
-          <input placeholder="Discussion (optional https/ipfs link or brief text)" v-model="ballot.discussion" />
+          <input
+            placeholder="Proposal Title (required)"
+            :class="{ title: true, invalid: validationErrors.title }"
+            v-model="ballot.title"
+          />
+          <div v-if="validationErrors.title" class="invalid-desc">
+            Title is Required.
+          </div>
+          <input
+            placeholder="Description (optional https/ipfs link or brief text)"
+            v-model="ballot.description"
+          />
+          <input
+            placeholder="Discussion (optional https/ipfs link or brief text)"
+            v-model="ballot.discussion"
+          />
           <ButtonPanel>
             <template #header>Choices</template>
             <button disabled>Single choice voting</button>
@@ -111,7 +130,7 @@ function tryPublish() {
             </div>
             <button disabled>Add Choice</button>
           </ButtonPanel>
-          <BorderPanel>
+          <BorderPanel :class="{ invalid: validationErrors.votingPeriod }">
             <template #header>Voting Period</template>
             <div class="calendar-buttons">
               <button v-on:click="onPickRange">
@@ -123,14 +142,15 @@ function tryPublish() {
                 <span class="value">{{ endVotingDisplay }}</span>
               </button>
             </div>
+            <div v-if="validationErrors.votingPeriod" class="invalid-period">
+              Voting Start &amp; Stop Dates are Required.
+            </div>
           </BorderPanel>
         </div>
         <div class="right-side">
           <ButtonPanel class="aside">
             <button round v-on:click="showPreview">Preview</button>
-            <button round :disabled="!isPublishable" v-on:click="tryPublish">
-              Publish
-            </button>
+            <button round v-on:click="tryPublish">Publish</button>
           </ButtonPanel>
         </div>
       </div>
@@ -155,7 +175,7 @@ function tryPublish() {
   overflow: hidden;
 }
 
-.left-side>div.panel {
+.left-side > div.panel {
   margin-bottom: 1.5rem;
 }
 
@@ -188,7 +208,7 @@ function tryPublish() {
   column-gap: 1rem;
 }
 
-.calendar-buttons>button {
+.calendar-buttons > button {
   padding: 1rem 13.5px;
   text-align: left;
   display: grid;
@@ -209,6 +229,24 @@ function tryPublish() {
   font-size: 0.875rem;
 }
 
+.invalid {
+  border: 1px solid var(--cds-ui-e-600);
+}
+
+.invalid-desc {
+  margin: -0.5rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--cds-ui-e-600);
+}
+
+.invalid-period {
+  margin: 0 0 0 1rem;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--cds-ui-e-600);
+}
+
 @media (max-width: 1024px) {
   .edit-container {
     display: block;
@@ -226,8 +264,8 @@ function tryPublish() {
 
 @media (max-width: 375px) {
   .preview-back,
-  .left-side>a,
-  .left-side>input {
+  .left-side > a,
+  .left-side > input {
     margin-left: 1.25rem;
     margin-right: 1.25rem;
   }

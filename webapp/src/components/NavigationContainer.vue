@@ -6,8 +6,8 @@ import NavigationBar from "./NavigationBar.vue";
 <template>
   <div class="top-nav">
     <NavigationBar />
-  </div>  
-  <main class="main-content">    
+  </div>
+  <main class="main-content">
     <MainAside class="floating-nav" />
     <section>
       <slot></slot>
@@ -19,7 +19,10 @@ import NavigationBar from "./NavigationBar.vue";
 .main-content {
   display: block;
   margin: 0;
-  padding: 2rem clamp(1.25rem, 19.72265vw - 73.959938px, 8rem) 0 calc( min(20vw, 20rem) + 3rem + clamp(1.25rem, 19.72265vw - 73.959938px, 8rem));
+  padding: 2rem clamp(1.25rem, 19.72265vw - 73.959938px, 8rem) 0
+    calc(
+      min(20vw, 20rem) + 3rem + clamp(1.25rem, 19.72265vw - 73.959938px, 8rem)
+    );
   overflow: hidden;
 }
 .floating-nav {
@@ -32,7 +35,7 @@ import NavigationBar from "./NavigationBar.vue";
   margin-top: 1px;
   left: 0;
   right: 0;
-  padding: 0 clamp(1.25rem, 19.72265vw - 73.959938px, 8rem);  
+  padding: 0 clamp(1.25rem, 19.72265vw - 73.959938px, 8rem);
   background-color: var(--cds-nd-900);
 }
 @media (max-width: 800px) {

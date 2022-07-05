@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { currentGateway, GatewayProvider } from "@/models/gateway";
+import { ref, onMounted, watch } from "vue";
+import {
+  currentGateway,
+  GatewayProvider,
+  signalConnectWallet,
+} from "@/models/gateway";
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 import WalletIcon from "./icons/WalletIcon.vue";
@@ -12,7 +16,7 @@ import {
 
 const dialog = ref<any>();
 const paringString = ref<string>();
-const supportsDialog = ref<boolean>(typeof HTMLDialogElement === 'function');
+const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
 
 async function onConnectWallet() {
   dialog.value.showModal();
@@ -54,6 +58,13 @@ function closeHashConnect() {
 onMounted(() => {
   dialog.value.addEventListener("cancel", onCancel);
 });
+
+watch(signalConnectWallet, (newValue) => {
+  if (newValue) {
+    onConnectWallet();
+    signalConnectWallet.value = false;
+  }
+});
 </script>
 
 <template>
@@ -62,11 +73,17 @@ onMounted(() => {
       <span class="btn-icon">RO</span>
       <span class="btn-text">Read Only</span>
     </button>
-    <button v-else-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
+    <button
+      v-else-if="currentGateway === GatewayProvider.CopyAndPaste"
+      v-on:click="onConnectWallet"
+    >
       <CopyPasteIcon />
       <span class="btn-text">Copy / Paste JSON</span>
     </button>
-    <button v-else-if="currentGateway === GatewayProvider.HashConnect" v-on:click="onConnectWallet">
+    <button
+      v-else-if="currentGateway === GatewayProvider.HashConnect"
+      v-on:click="onConnectWallet"
+    >
       <HashConnectIcon />
       <span class="btn-text">HashConnect</span>
     </button>
@@ -92,9 +109,7 @@ onMounted(() => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.CopyAndPaste">
       <header>
-        <div>
-          <CopyPasteIcon /> Copy / Paste JSON
-        </div>
+        <div><CopyPasteIcon /> Copy / Paste JSON</div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -109,9 +124,7 @@ onMounted(() => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
       <header>
-        <div>
-          <HashConnectIcon /> HashConnect
-        </div>
+        <div><HashConnectIcon /> HashConnect</div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -142,10 +155,13 @@ onMounted(() => {
             </button>
           </template>
         </div>
-        <button v-if="
-          currentGateway === GatewayProvider.HashConnect &&
-          hashconnectInfo.pairedWallet
-        " v-on:click="changeHashconnectWallet">
+        <button
+          v-if="
+            currentGateway === GatewayProvider.HashConnect &&
+            hashconnectInfo.pairedWallet
+          "
+          v-on:click="changeHashconnectWallet"
+        >
           Change HashConnect Wallet
         </button>
         <button v-on:click="currentGateway = GatewayProvider.None">
@@ -175,7 +191,7 @@ header.main {
   border-bottom: 1px solid var(--cds-nd-600);
 }
 
-header.main>button {
+header.main > button {
   padding: 0.375rem 1rem;
 }
 
@@ -226,16 +242,16 @@ header.main>button {
 }
 
 @media (max-width: 540px) {
-  header.main>button {
+  header.main > button {
     width: 2rem;
   }
 
-  header.main>button>* {
+  header.main > button > * {
     margin-left: -1rem;
     margin-right: -1rem;
   }
 
-  header.main>button>span.btn-text {
+  header.main > button > span.btn-text {
     display: none;
   }
 

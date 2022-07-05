@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import MainAside from "@/components/MainAside.vue";
 import EpochDateDisplay from "@/components/EpochDateDisplay.vue";
 import { network, token, lastUpdated, updateLastUpdated } from "@/models/info";
 import { onMounted } from "vue";
@@ -25,7 +24,14 @@ onMounted(async () => {
         <EpochDateDisplay :value="lastUpdated"></EpochDateDisplay>
       </dd>
       <template v-if="network.hcsStartDate">
-        <dd>(Proposals created before <EpochDateDisplay class="inline" :value="network.hcsStartDate"></EpochDateDisplay> are not included)</dd>
+        <dd>
+          (Proposals created before
+          <EpochDateDisplay
+            class="inline"
+            :value="network.hcsStartDate"
+          ></EpochDateDisplay>
+          are not included)
+        </dd>
       </template>
       <dt>Hedera Network</dt>
       <dd>{{ network.network }}</dd>
@@ -68,7 +74,7 @@ dd {
   overflow: hidden;
 }
 
-dd+dt {
+dd + dt {
   margin-top: 1.5rem;
 }
 

@@ -15,7 +15,7 @@ const minStartingDate = ref(nextWeek);
 const dateRange = ref<Date[]>();
 const dialog = ref<any>();
 const isInvalid = computed(() => {
-  var list = dateRange?.value;
+  const list = dateRange?.value;
   if (list && list.length == 2) {
     return !(list[0] && list[1]);
   }
@@ -36,7 +36,7 @@ function promptForDateRange(
     } else {
       resolveFn = resolve;
       rejectFn = reject;
-      let dateList = [];
+      const dateList = [];
       if (startDate) {
         dateList.push(startDate);
         if (endDate) {
