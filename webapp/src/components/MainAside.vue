@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { RouterLink } from "vue-router";
+
+const supportsDialog = ref<boolean>(typeof HTMLDialogElement === 'function');
 </script>
 
 <template>
@@ -7,7 +10,7 @@ import { RouterLink } from "vue-router";
     <header>Calaxy - $CLXY</header>
     <nav>
       <RouterLink to="/">Proposals</RouterLink>
-      <RouterLink to="/new">New Proposal</RouterLink>
+      <RouterLink v-if="supportsDialog" to="/new">New Proposal</RouterLink>
       <RouterLink to="/about">About</RouterLink>
     </nav>
   </aside>

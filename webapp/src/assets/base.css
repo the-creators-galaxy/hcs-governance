@@ -152,6 +152,10 @@ dialog {
 	border: 1px solid var(--cds-nd-600);
 }
 
+dialog:not([open]) {
+    display: none;
+}
+
 dialog>header {
 	display: grid;
 	grid-template-columns: 1fr max-content;
