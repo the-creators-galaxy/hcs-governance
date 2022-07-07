@@ -15,7 +15,10 @@ defineProps<{ proposal: Proposal }>();
     </div>
     <div class="title">{{ proposal.title }}</div>
     <div class="description">{{ proposal.description }}</div>
-    <TallySummary v-if="proposal.status == ProposalStatus.Closed" :proposal="proposal" />
+    <TallySummary
+      v-if="proposal.status == ProposalStatus.Closed"
+      :proposal="proposal"
+    />
     <div v-else-if="proposal.status == ProposalStatus.Queued"></div>
     <div v-else-if="proposal.expires < 1" class="expires">Closes today</div>
     <div v-else-if="proposal.expires === 1" class="expires">

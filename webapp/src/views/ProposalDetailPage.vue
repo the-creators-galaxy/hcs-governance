@@ -20,7 +20,11 @@ getProposalDetails(route.params.id as string).then((p) => {
   <LeafPageContainer>
     <BackLink />
     <h2 v-if="loading">Loading...</h2>
-    <ProposalDetailView v-else-if="proposal" :proposal="proposal" :hide-back-button="false" />
+    <ProposalDetailView
+      v-else-if="proposal"
+      :proposal="proposal"
+      :hide-back-button="false"
+    />
     <h2 v-else>Proposal not found.</h2>
   </LeafPageContainer>
 </template>

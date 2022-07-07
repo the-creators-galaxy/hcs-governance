@@ -42,7 +42,10 @@ const summary = computed(() => {
       <h2>{{ proposal.title }}</h2>
       <div class="subheading">
         <StatusDisplay :status="proposal.status"></StatusDisplay>
-        <TallySummary v-if="proposal.status == ProposalStatus.Closed" :proposal="proposal" />
+        <TallySummary
+          v-if="proposal.status == ProposalStatus.Closed"
+          :proposal="proposal"
+        />
       </div>
       <div class="description">
         Description:
@@ -52,10 +55,16 @@ const summary = computed(() => {
         Discussion:
         <PossibleLink :link="proposal.discussion" />
       </div>
-      <CastVote :ballot-id="proposal.consensusTimestamp" :choices="proposal.choices"
-        v-if="proposal.status === ProposalStatus.Voting" />
-      <VotesDisplay :votes="proposal.votes" :choices="proposal.choices"
-        v-if="proposal.status !== ProposalStatus.Queued" />
+      <CastVote
+        :ballot-id="proposal.consensusTimestamp"
+        :choices="proposal.choices"
+        v-if="proposal.status === ProposalStatus.Voting"
+      />
+      <VotesDisplay
+        :votes="proposal.votes"
+        :choices="proposal.choices"
+        v-if="proposal.status !== ProposalStatus.Queued"
+      />
     </div>
     <div class="right-side">
       <BorderPanel>
@@ -76,7 +85,11 @@ const summary = computed(() => {
       <BorderPanel>
         <template #header>Current Results</template>
         <div class="results">
-          <VoteCount v-for="(tally, index) in summary" :tally="tally" v-bind:key="index" />
+          <VoteCount
+            v-for="(tally, index) in summary"
+            :tally="tally"
+            v-bind:key="index"
+          />
         </div>
       </BorderPanel>
     </div>
@@ -95,12 +108,12 @@ const summary = computed(() => {
   overflow: hidden;
 }
 
-.right-side {  
+.right-side {
   min-width: 20rem;
   overflow: hidden;
 }
 
-.right-side>* {
+.right-side > * {
   margin-top: 1.5rem;
 }
 
@@ -143,11 +156,11 @@ div.discussion {
   color: var(--cds-nd-200);
 }
 
-div.results>div+div {
+div.results > div + div {
   margin-top: 1rem;
 }
 
-.left-side>div.panel {
+.left-side > div.panel {
   margin-top: 1.5rem;
 }
 

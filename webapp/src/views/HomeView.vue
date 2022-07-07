@@ -12,24 +12,24 @@ getProposals().then((i) => (proposals.value = i));
 
 <template>
   <NavigationContainer>
-      <h2>Proposals</h2>
-      <ul>
-        <li v-for="proposal in proposals" :key="proposal.consensusTimestamp">
-          <RouterLink
-            :to="{
-              name: 'proposal',
-              params: { id: proposal.consensusTimestamp },
-            }"
-          >
-            <ProposalCard :proposal="proposal" />
-          </RouterLink>
-        </li>
-      </ul>
+    <h2>Proposals</h2>
+    <ul>
+      <li v-for="proposal in proposals" :key="proposal.consensusTimestamp">
+        <RouterLink
+          :to="{
+            name: 'proposal',
+            params: { id: proposal.consensusTimestamp },
+          }"
+        >
+          <ProposalCard :proposal="proposal" />
+        </RouterLink>
+      </li>
+    </ul>
   </NavigationContainer>
 </template>
 
 <style scoped>
-ul {  
+ul {
   display: block;
   margin: 0;
   padding: 0;

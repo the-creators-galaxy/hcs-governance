@@ -1,6 +1,6 @@
 <template>
-  <main class="main-content">    
-      <slot></slot>
+  <main class="main-content">
+    <slot></slot>
   </main>
 </template>
 
@@ -15,6 +15,6 @@
 @media (max-width: 375px) {
   .main-content {
     padding: 2rem 0;
-  }  
+  }
 }
 </style>

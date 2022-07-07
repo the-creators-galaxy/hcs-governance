@@ -18,7 +18,7 @@ defineProps<{ proposal: Proposal | ProposalDetail }>();
       :amount="proposal.tally[proposal.winner]"
       :decimals="token.decimals"
     />
-    <span class="symbol">${{ token.symbol }}    </span>
+    <span class="symbol">${{ token.symbol }} </span>
     <span class="checksum">[{{ proposal.checksum }}]</span>
   </div>
   <div v-else class="indeterminate">
@@ -39,11 +39,11 @@ div.indeterminate {
   color: var(--cds-nl-0-60);
 }
 span.symbol::before {
-  content: ' ';
+  content: " ";
 }
 span.symbol::after {
   display: inline-block;
-  content: ' ';
+  content: " ";
   width: 2rem;
 }
 span.checksum {

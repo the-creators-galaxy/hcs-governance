@@ -3,7 +3,7 @@ import { currentGateway, GatewayProvider } from "@/models/gateway";
 import type { BallotCreateParams } from "@/models/gateway";
 import { ref, onMounted } from "vue";
 import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
-import { trimOptionalText } from '@/models/text';
+import { trimOptionalText } from "@/models/text";
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import { token, network } from "@/models/info";
 import { submitHcsMessage } from "@/models/hashconnect";
@@ -126,9 +126,7 @@ defineExpose({
       </div>
       <footer>
         <button v-on:click="onCancel">Close</button>
-        <button v-on:click="onCopyToClipboard">
-          <CopyPasteIcon /> Copy
-        </button>
+        <button v-on:click="onCopyToClipboard"><CopyPasteIcon /> Copy</button>
       </footer>
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
@@ -185,7 +183,7 @@ defineExpose({
   min-width: min(90vw, 28rem);
 }
 
-.dlg-content>div {
+.dlg-content > div {
   max-width: min(90vw, 28rem);
 }
 

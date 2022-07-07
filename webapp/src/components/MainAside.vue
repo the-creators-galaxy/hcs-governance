@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import { RouterLink } from "vue-router";
 
-const supportsDialog = ref<boolean>(typeof HTMLDialogElement === 'function');
+const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
 </script>
 
 <template>
