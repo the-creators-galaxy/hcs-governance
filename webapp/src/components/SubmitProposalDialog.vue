@@ -179,8 +179,8 @@ defineExpose({
   display: grid;
   grid-template-columns: 1fr;
   row-gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  min-width: min(90vw, 28rem);
+  padding: 1.25rem 0rem 1.25rem 1.5rem;
+  min-width: min(80vw, 28rem);
 }
 
 .dlg-content > div {
