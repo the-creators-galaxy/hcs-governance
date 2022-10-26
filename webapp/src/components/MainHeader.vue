@@ -145,7 +145,7 @@ watch(signalConnectWallet, (newValue) => {
           <template v-else>
             <p>
               Please use the below paring string to sync this app with your
-              remote HasConnect enabled wallet:
+              remote HashConnect enabled wallet:
             </p>
             <p class="paring-string">
               <span>{{ paringString }}</span>
