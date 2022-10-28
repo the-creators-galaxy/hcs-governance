@@ -203,9 +203,11 @@ header.main > button {
 }
 
 .description {
-  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   overflow-x: hidden;
   overflow-y: auto;
+  padding-right: 10px;
+  margin-right: -10px;
 }
 
 .description dl {
