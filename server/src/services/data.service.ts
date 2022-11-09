@@ -1,7 +1,7 @@
+import { date_to_keyString } from '@bugbytes/hapi-util';
 import { Injectable } from '@nestjs/common';
 import { Ballot } from 'src/models/ballot';
 import { Vote } from 'src/models/vote';
-import { epochFromDate } from 'src/util/epoch';
 import * as crypto from 'crypto';
 /**
  * Internal tracking of the last HCS timestamp processed,
@@ -106,7 +106,7 @@ export class DataService {
 	 */
 	getBallots(): Ballot[] {
 		ensureChecksums();
-		const now = epochFromDate(new Date());
+		const now = date_to_keyString(new Date());
 		return Array.from(ballots.values()).sort((a, b) => {
 			const aVoting = a.startTimestamp <= now && now <= a.endTimestamp;
 			const bVoting = b.startTimestamp <= now && now <= b.endTimestamp;

@@ -1,3 +1,5 @@
+import { EntityIdKeyString, TimestampKeyString } from "@bugbytes/hapi-util";
+
 /**
  * Stores the details of a proposal ballot (excluding individual votes cast).
  */
@@ -6,16 +8,16 @@ export interface Ballot {
 	 * The consensus timestamp of the HCS message creating the proposal ballot.
 	 * This becomes the proposal ballot’s identifier.
 	 */
-	consensusTimestamp: string;
+	consensusTimestamp: TimestampKeyString;
 	/**
 	 * The voting token associated with this proposal, in 0.0.123 string format.
 	 */
-	tokenId: string;
+	tokenId: EntityIdKeyString;
 	/**
 	 * The hedera account that submitted the ballot creation message,
 	 * in 0.0.123 string format.
 	 */
-	payerId: string;
+	payerId: EntityIdKeyString;
 	/**
 	 * The title of the proposal.
 	 */
@@ -44,12 +46,12 @@ export interface Ballot {
 	 * The date and time voting for this proposal may commence,
 	 * in hedera 0000.0000 epoch string format.
 	 */
-	startTimestamp: string;
+	startTimestamp: TimestampKeyString;
 	/**
 	 * The date and time voting for this proposal ceases,
 	 * in hedera 0000.0000 epoch string format.
 	 */
-	endTimestamp: string;
+	endTimestamp: TimestampKeyString;
 	/**
 	 * The tally of votes (by voting token balance weight)
 	 * which may be computed after the voting window has closed.

@@ -1,6 +1,6 @@
 {
   "name": "hcs-ballot-attest",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CGIP Ballot Attestation Tool",
   "main": "index.js",
   "scripts": {

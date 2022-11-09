@@ -21,13 +21,18 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@bugbytes/hapi-proto": "0.31.4",
+    "@bugbytes/hapi-mirror": "0.31.4",
+    "@bugbytes/hapi-util": "0.31.4",
     "@grpc/grpc-js": "^1.6.7",
-    "@hashgraph/proto": "^2.5.0",
     "@nestjs/common": "^8.4.7",
     "@nestjs/config": "^2.1.0",
     "@nestjs/core": "^8.4.7",
     "@nestjs/platform-express": "^8.4.7",
     "@nestjs/schedule": "^2.0.1",
+    "long": "^5.2.0",
+    "node-fetch": "^2.6.7",
+    "protobufjs": "^7.1.2",
     "rimraf": "^3.0.2",
     "rxjs": "^7.5.5"
   },

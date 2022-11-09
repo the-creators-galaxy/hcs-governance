@@ -1,8 +1,8 @@
-import { request, Agent } from 'https';
 import { Injectable, Logger } from '@nestjs/common';
 import { NetworkConfigurationService } from './network-configuration.service';
-import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
-import { TokenInfo } from 'src/models/token-info';
+import { MessageInfo, MirrorError, MirrorRestClient, TokenBalanceInfo } from '@bugbytes/hapi-mirror';
+import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
+import { TokenSummary } from 'src/models/token-summary';
 /**
  * Provides various methods for retrieving information from a remote
  * Hedera Mirror Node REST API.
@@ -14,61 +14,63 @@ export class MirrorClientService {
 	 */
 	private readonly logger = new Logger(MirrorClientService.name);
 	/**
-	 * A common http agent configured with `keepalive` to true, this attempts
-	 * to reduce the I/O burden on the mirror node, increasing the reliability
-	 * of connection.
+	 * A common mirror node rest client.
 	 */
-	private readonly agent = new Agent({ keepAlive: true });
+	private readonly client: MirrorRestClient;
 	/**
 	 * Public constructor, called by the NextJS runtime dependency injection services.
 	 *
 	 * @param network The network configuration service, providing configuration details
 	 * such as the id of the voting token.
 	 */
-	constructor(private readonly network: NetworkConfigurationService) {}
+	constructor(private readonly network: NetworkConfigurationService) {
+		this.client = new MirrorRestClient(this.network.mirrorRest)
+	}
 	/**
 	 * Retrieves the token information for the token identified in the
 	 * system-wide configuration.
 	 *
-	 * @returns A `TokenInfo` object describing the voting token to be
+	 * @returns A `TokenSummary` object describing the voting token to be
 	 * used in processing.  If not found, an error is raised.
 	 */
-	async getHcsTokenInfo(): Promise<TokenInfo> {
-		const options = {
-			hostname: this.network.mirrorRest,
-			path: `/api/v1/tokens/${this.network.hcsToken}`,
-			method: 'GET',
-			agent: this.agent,
-		};
-		const data = await this.executeRequestWithRetry(options);
-		const json = JSON.parse(data.toString('ascii'));
+	async getHcsTokenSummary(): Promise<TokenSummary> {
+		const record = await this.client.getTokenInfo(this.network.hcsToken as unknown as EntityIdKeyString);
 		return {
-			id: this.network.hcsToken,
-			symbol: json.symbol,
-			name: json.name,
-			decimals: parseInt(json.decimals, 0),
-		};
+			id: record.token_id as unknown as EntityIdKeyString,
+			symbol: record.symbol,
+			name: record.name,
+			decimals: parseInt(record.decimals, 10)
+		}
 	}
 	/**
 	 * Retrieves the corresponding mirror node record for a given HCS
-	 * message by its configured topic and given sequence.
+	 * message by its configured topic and given sequence.  Assumes
+	 * the message exists and will wait for the mirror node to have
+	 * the information before returning (within reason).
 	 *
 	 * @param sequenceNumber The sequence number of the HCS message to
 	 * retrieve.  The system-wide configuration identifies which topic
 	 * is queried.
 	 *
 	 * @returns The HCS Message Mirror Record information if found,
-	 * otherwise an error is raised.
+	 * otherwise an error is raised after a reasonable wait.
 	 */
-	async getHcsMessageInfo(sequenceNumber: Long): Promise<HcsMessageMirrorRecord> {
-		const options = {
-			hostname: this.network.mirrorRest,
-			path: `/api/v1/topics/${this.network.hcsTopic}/messages/${sequenceNumber}`,
-			method: 'GET',
-			agent: this.agent,
-		};
-		const data = await this.executeRequestWithRetry(options);
-		return JSON.parse(data.toString('ascii'));
+	async waitForHcsMessageInfo(sequenceNumber: number): Promise<MessageInfo> {
+		let count = 0;
+		while (true) {
+			try {
+				return await this.client.getMessage(this.network.hcsTopic as unknown as EntityIdKeyString, sequenceNumber);
+			} catch (ex) {
+				count++;
+				if (ex instanceof MirrorError && ex.status === 404 && count < 30) {
+					this.logger.verbose(`HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic} is not yet available, will Retry.`);
+					await new Promise((resolve) => setTimeout(resolve, 7000));
+				} else {
+					this.logger.error(`Error fetching HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic}, failed with code: ${ex.status || ex.message}`);
+					throw ex;
+				}
+			}
+		}
 	}
 	/**
 	 * Retrieves the token balance at the specified time for a given account.
@@ -83,25 +85,12 @@ export class MirrorClientService {
 	 * balance) for the specified account occurring before the specified
 	 * input timestamp value.
 	 */
-	async getTokenBalance(accountId: string, tokenId: string, timestamp: string): Promise<{ timestamp: string; balance: number }> {
-		const options = {
-			hostname: this.network.mirrorRest,
-			path: `/api/v1/tokens/${tokenId}/balances?account.id=${accountId}&timestamp=lte:${timestamp}`,
-			method: 'GET',
-			agent: this.agent,
-		};
-		const data = await this.executeRequestWithRetry(options);
-		const json = JSON.parse(data.toString('ascii'));
-		if (json.balances && json.balances.length === 1) {
-			return {
-				timestamp: json.timestamp,
-				balance: json.balances[0].balance,
-			};
+	async getTokenBalance(accountId: EntityIdKeyString, tokenId: EntityIdKeyString, timestamp: TimestampKeyString): Promise<TokenBalanceInfo> {
+		try {
+			return await this.client.getTokenBalance(accountId, tokenId, timestamp);
+		} catch (ex) {
+			return { timestamp, account: accountId, token: tokenId, balance: 0 }
 		}
-		return {
-			timestamp,
-			balance: 0,
-		};
 	}
 	/**
 	 * Retrieves the latest consensus timestamp known by the ledger
@@ -110,16 +99,8 @@ export class MirrorClientService {
 	 * @returns The latest known consensus timestamp,
 	 * in Hedera Epoch string form (0000.0000).
 	 */
-	async getLatestTransactionTimestamp(): Promise<string> {
-		const options = {
-			hostname: this.network.mirrorRest,
-			path: '/api/v1/transactions?limit=1&order=desc',
-			method: 'GET',
-			agent: this.agent,
-		};
-		const data = await this.executeRequestWithRetry(options);
-		const json = JSON.parse(data.toString('ascii'));
-		return json.transactions && json.transactions.length > 0 ? json.transactions[0].consensus_timestamp : '0.0';
+	async getLatestTransactionTimestamp(): Promise<TimestampKeyString> {
+		return (await this.client.getLatestTransaction()).consensus_timestamp as unknown as TimestampKeyString;
 	}
 	/**
 	 * Retrieves the latest message timestamp for the system-wide
@@ -129,62 +110,7 @@ export class MirrorClientService {
 	 * @returns The consensus timestamp for the last message in the
 	 * topic, in Hedera Epoch string form (0000.0000).
 	 */
-	async getLatestMessageTimestamp(): Promise<string> {
-		const options = {
-			hostname: this.network.mirrorRest,
-			path: `/api/v1/topics/${this.network.hcsTopic}/messages?limit=1&order=desc`,
-			method: 'GET',
-			agent: this.agent,
-		};
-		const data = await this.executeRequestWithRetry(options);
-		const json = JSON.parse(data.toString('ascii'));
-		return json.messages && json.messages.length > 0 ? json.messages[0].consensus_timestamp : '0.0';
+	async getLatestMessageTimestamp(): Promise<TimestampKeyString> {
+		return (await this.client.getLatestMessage(this.network.hcsTopic as unknown as EntityIdKeyString)).consensus_timestamp as unknown as TimestampKeyString;
 	}
-	/**
-	 * Internal helper function that performs the actual REST API call to
-	 * the mirror node.  It assumes input values are 'correct' such that
-	 * it will retry the request upon any failure for set number of tries
-	 * before raising an error.
-	 *
-	 * @param options The http request options of the request.
-	 *
-	 * @returns A buffer object containing the data returned from the request,
-	 * or an error is thrown for non 200 responses.
-	 */
-	private async executeRequestWithRetry(options): Promise<Buffer> {
-		let code;
-		let data;
-		for (let i = 0; i < 30; i++) {
-			({ code, data } = await executeRequest(options));
-			if (code === 200) {
-				return data;
-			} else if (code === 404) {
-				this.logger.verbose(`${options.path} Not Available, will Retry.`);
-				await new Promise((resolve) => setTimeout(resolve, 7000));
-			}
-		}
-		this.logger.error(`Fetching mirror data failed with code: ${code}`);
-		throw new Error(`Received error code: ${code}`);
-	}
-}
-/**
- * Low level helper function implementing the call to the REST API.
- *
- * @param options HTTP options sent in from calling code.
- *
- * @returns An object containing the HTTP code returned (typically 200)
- * and the data from the body of the returned message.
- */
-function executeRequest(options): Promise<{ code: number; data: Buffer }> {
-	const data = [];
-	return new Promise((resolve, reject) => {
-		const req = request(options, (res) => {
-			res.on('data', (chunk) => {
-				data.push(chunk);
-			});
-			res.on('end', () => resolve({ code: res.statusCode, data: Buffer.concat(data) }));
-		});
-		req.on('error', (e) => reject(e));
-		req.end();
-	});
 }

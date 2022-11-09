@@ -17,6 +17,7 @@ import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
 import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
 import LeafPageContainer from "../components/LeafPageContainer.vue";
+import { pairedWallet } from "@/models/hashconnect";
 
 const dateDialog = ref<any>();
 const submitDialog = ref<any>();
@@ -78,7 +79,7 @@ function tryPublish() {
   errors.votingPeriod = !candidate.startDate || !candidate.endDate;
   validationErrors.value = errors;
   if (!errors.title && !errors.votingPeriod) {
-    if (currentGateway.value === GatewayProvider.None) {
+    if (currentGateway.value === GatewayProvider.None || (currentGateway.value === GatewayProvider.HashConnect && !pairedWallet.value)) {
       signalConnectWallet.value = true;
     } else {
       submitDialog.value.trySubmitCreateBallot(ballot.value);

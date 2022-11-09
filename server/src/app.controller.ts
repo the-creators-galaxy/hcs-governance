@@ -1,6 +1,6 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { Ballot } from './models/ballot';
-import { TokenInfo } from './models/token-info';
+import { TokenSummary } from './models/token-summary';
 import { Votes } from './models/vote';
 import { DataService } from './services/data.service';
 import { NetworkConfigurationService } from './services/network-configuration.service';
@@ -15,16 +15,16 @@ export class AppController {
 	 * @param config Contains the configuration of the service, such as the Topic to
 	 * monitor mirror node endpoint addresses.
 	 *
-	 * @param tokenInfo Details of the voting token.
+	 * @param tokenSummary Details of the voting token.
 	 *
 	 * @param dataService The central data storage service, containing the listing
 	 * of proposal ballots and votes.
 	 */
 	constructor(
 		private readonly config: NetworkConfigurationService,
-		private readonly tokenInfo: TokenInfo,
+		private readonly tokenSummary: TokenSummary,
 		private readonly dataService: DataService,
-	) {}
+	) { }
 	/**
 	 * @returns basic public configuration information for this service and the
 	 * latest known timestamp, useful for displaying in the user interface.
@@ -34,9 +34,9 @@ export class AppController {
 		return {
 			mirrorGrpc: this.config.mirrorGrpc,
 			mirrorRest: this.config.mirrorRest,
-			htsToken: this.tokenInfo,
+			htsToken: this.tokenSummary,
 			hcsTopic: this.config.hcsTopic,
-			hcsStartDate: this.config.hcsStartDate,			
+			hcsStartDate: this.config.hcsStartDate,
 			lastUpdated: this.dataService.getLastUpdated(),
 			version: process.env.npm_package_version || 'unknown',
 		};

@@ -1,15 +1,17 @@
+import { EntityIdKeyString } from "@bugbytes/hapi-util";
+
 /**
  * Represents details of the voting token attached to this
  * server instance.  Note: it is a class not an interface,
  * this is necessary because this information is injected
  * by the NestJS framework (interfaces can not be injected).
  */
-export class TokenInfo {
+export class TokenSummary {
 	/**
 	 * The hedera token used for voting,
 	 * in 0.0.123 string format.
 	 */
-	id: string;
+	id: EntityIdKeyString;
 	/**
 	 * The symbol associated with the voting token.
 	 */

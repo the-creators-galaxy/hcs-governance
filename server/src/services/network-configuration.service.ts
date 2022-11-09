@@ -1,6 +1,6 @@
+import { date_to_keyString } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { epochFromDate } from 'src/util/epoch';
 /**
  * Service instance that parses and validates configuration information
  * used during startup and for other system functions.
@@ -57,7 +57,7 @@ export class NetworkConfigurationService {
 		if (this.hcsStartDate) {
 			if (!/^\d+\.\d+$/.test(this.hcsStartDate)) {
 				errors.push('Invalid HCS Starting Date in configuration.');
-			} else if (this.hcsStartDate > epochFromDate(new Date())) {
+			} else if (this.hcsStartDate > date_to_keyString(new Date())) {
 				errors.push('Invalid HCS Starting Date, value can not be in the future.');
 			}
 		}

@@ -1,6 +1,7 @@
-import * as hapi from '@hashgraph/proto';
+import { MessageInfo } from '@bugbytes/hapi-mirror';
+import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
+import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
-import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
 import { Vote } from 'src/models/vote';
 import { noop } from 'src/util/noop';
 import { DataService } from './data.service';
@@ -23,7 +24,7 @@ export class HcsVoteProcessingService {
 	 *
 	 * @param dataService The proposal ballot data storage (state) service.
 	 */
-	constructor(private readonly mirrorClient: MirrorClientService, private readonly dataService: DataService) {}
+	constructor(private readonly mirrorClient: MirrorClientService, private readonly dataService: DataService) { }
 	/**
 	 * Process a potential cast-vote HCS native message.  If the message
 	 * passes validation it is forwarded to the data service for storage.
@@ -52,14 +53,14 @@ export class HcsVoteProcessingService {
 	 * list of proposed ballots).
 	 */
 	processMessage(
-		hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse,
-		hcsMirrorRecord: HcsMessageMirrorRecord,
+		hcsMessage: ConsensusTopicResponse,
+		hcsMirrorRecord: MessageInfo,
 		hcsPayload: any,
 	): () => Promise<void> {
 		const ballotId = hcsPayload.ballotId;
 		const vote: Vote = {
-			consensusTimestamp: hcsMirrorRecord.consensus_timestamp,
-			payerId: hcsMirrorRecord.payer_account_id,
+			consensusTimestamp: hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString,
+			payerId: hcsMirrorRecord.payer_account_id as unknown as EntityIdKeyString,
 			vote: hcsPayload.vote,
 			tokenBalance: 0,
 		};
