@@ -9,7 +9,7 @@ protobufJS.util.Long = require('long');
 protobufJS.configure();
 
 /* Setup nodejs to use node-fetch */
-if(!global.fetch) {
+if (!global.fetch) {
 	global.fetch = require('node-fetch');
 }
 

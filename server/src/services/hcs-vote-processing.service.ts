@@ -1,6 +1,6 @@
 import { MessageInfo } from '@bugbytes/hapi-mirror';
 import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
-import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
+import { EntityIdKeyString, is_timestamp, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
 import { Vote } from 'src/models/vote';
 import { noop } from 'src/util/noop';
@@ -24,7 +24,7 @@ export class HcsVoteProcessingService {
 	 *
 	 * @param dataService The proposal ballot data storage (state) service.
 	 */
-	constructor(private readonly mirrorClient: MirrorClientService, private readonly dataService: DataService) { }
+	constructor(private readonly mirrorClient: MirrorClientService, private readonly dataService: DataService) {}
 	/**
 	 * Process a potential cast-vote HCS native message.  If the message
 	 * passes validation it is forwarded to the data service for storage.
@@ -52,11 +52,7 @@ export class HcsVoteProcessingService {
 	 * is complete (regardless of whether it was found to be valid and added to the
 	 * list of proposed ballots).
 	 */
-	processMessage(
-		hcsMessage: ConsensusTopicResponse,
-		hcsMirrorRecord: MessageInfo,
-		hcsPayload: any,
-	): () => Promise<void> {
+	processMessage(hcsMessage: ConsensusTopicResponse, hcsMirrorRecord: MessageInfo, hcsPayload: any): () => Promise<void> {
 		const ballotId = hcsPayload.ballotId;
 		const vote: Vote = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString,
@@ -64,13 +60,13 @@ export class HcsVoteProcessingService {
 			vote: hcsPayload.vote,
 			tokenBalance: 0,
 		};
-		if (!/^\d+\.\d+$/.test(ballotId)) {
+		if (!is_timestamp(ballotId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Invalid Ballot ID.`);
 		} else if (typeof vote.vote !== 'number' || vote.vote < 0) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Vote must be a non-negative number.`);
 		} else {
 			return async () => {
-				const ballot = this.dataService.getBallot(ballotId);
+				const ballot = await this.dataService.getBallot(ballotId);
 				if (!ballot) {
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Valid ballot does not exist.`);
 				} else if (ballot.startTimestamp > vote.consensusTimestamp) {
@@ -79,6 +75,8 @@ export class HcsVoteProcessingService {
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Vote was cast after voting was finished.`);
 				} else if (!ballot.choices[vote.vote]) {
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Vote did not match any valid vote option.`);
+				} else if (ballot.ineligibleAccounts.includes(vote.payerId)) {
+					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed vote validation: Vote was cast by ineligible account.`);
 				} else {
 					const tokenBalance = await this.mirrorClient.getTokenBalance(vote.payerId, ballot.tokenId, ballot.startTimestamp);
 					if (tokenBalance.balance === 0) {
@@ -86,12 +84,9 @@ export class HcsVoteProcessingService {
 					} else {
 						vote.tokenBalance = tokenBalance.balance;
 						this.dataService.addVote(ballot.consensusTimestamp, vote);
-						this.logger.verbose(
-							`Message ${hcsMessage.sequenceNumber} recorded as vote for proposal ${ballot.consensusTimestamp} cast by ${vote.payerId}`,
-						);
+						this.logger.verbose(`Message ${hcsMessage.sequenceNumber} recorded as vote for proposal ${ballot.consensusTimestamp} cast by ${vote.payerId}`);
 					}
 				}
-				return Promise.resolve();
 			};
 		}
 		// Not a valid message, do nothing.

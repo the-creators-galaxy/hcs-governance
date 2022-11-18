@@ -31,4 +31,4 @@ import { TokenSummary } from './models/token-summary';
 		},
 	],
 })
-export class AppModule { }
+export class AppModule {}

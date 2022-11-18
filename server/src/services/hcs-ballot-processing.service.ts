@@ -1,6 +1,6 @@
 import { MessageInfo } from '@bugbytes/hapi-mirror';
 import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
-import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
+import { EntityIdKeyString, is_entity_id, is_timestamp, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
 import { Ballot } from 'src/models/ballot';
 import { noop } from 'src/util/noop';
@@ -24,7 +24,7 @@ export class HcsBallotProcessingService {
 	 *
 	 * @param dataService The data service storing proposal ballot information.
 	 */
-	constructor(private readonly network: NetworkConfigurationService, private readonly dataService: DataService) { }
+	constructor(private readonly network: NetworkConfigurationService, private readonly dataService: DataService) {}
 	/**
 	 * Process a potential ballot-create HCS native message.  If the message
 	 * passes validation it is forwarded to the data service for storage.
@@ -52,11 +52,7 @@ export class HcsBallotProcessingService {
 	 * is complete (regardless of whether it was found to be valid and added to the
 	 * list of proposed ballots).
 	 */
-	processMessage(
-		hcsMessage: ConsensusTopicResponse,
-		hcsMirrorRecord: MessageInfo,
-		hcsPayload: any,
-	): () => Promise<void> {
+	processMessage(hcsMessage: ConsensusTopicResponse, hcsMirrorRecord: MessageInfo, hcsPayload: any): () => Promise<void> {
 		const ballot: Ballot = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString,
 			tokenId: hcsPayload.tokenId,
@@ -68,15 +64,19 @@ export class HcsBallotProcessingService {
 			choices: hcsPayload.choices,
 			startTimestamp: hcsPayload.startTimestamp,
 			endTimestamp: hcsPayload.endTimestamp,
+			minVotingThreshold: hcsPayload.threshold || 0,
+			ineligibleAccounts: hcsPayload.ineligible || [],
 			tally: new Array(hcsPayload.choices.length).fill(0),
 			winner: undefined,
 			checksum: undefined,
 		};
-		if (!/^\d+\.\d+\.\d+$/.test(ballot.tokenId)) {
+		if (!is_timestamp(ballot.consensusTimestamp)) {
+			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Consensus Timestamp.`);
+		} else if (!is_entity_id(ballot.tokenId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Token ID.`);
 		} else if (ballot.tokenId !== this.network.hcsToken) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} contains a create-ballot for a different payment token ID.`);
-		} else if (!/^\d+\.\d+\.\d+$/.test(ballot.payerId)) {
+			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: contains a create-ballot for a different payment token ID.`);
+		} else if (!is_entity_id(ballot.payerId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Payer ID.`);
 		} else if (!ballot.title) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Empty title.`);
@@ -86,27 +86,30 @@ export class HcsBallotProcessingService {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Empty discussion url.`);
 		} else if (ballot.scheme !== 'single-choice') {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Unrecognized Voting Scheme.`);
-		} else if (!ballot.choices || ballot.choices.length < 2) {
+		} else if (!Array.isArray(ballot.choices) || ballot.choices.length < 2) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ballot needs at least two Voting Choices.`);
-		} else if (!/^\d+\.\d+$/.test(ballot.consensusTimestamp)) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Consensus Timestamp.`);
-		} else if (!/^\d+\.\d+$/.test(ballot.startTimestamp)) {
+		} else if (!is_timestamp(ballot.startTimestamp)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Voting Start Time.`);
-		} else if (!/^\d+\.\d+$/.test(ballot.endTimestamp)) {
+		} else if (!is_timestamp(ballot.endTimestamp)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Voting Completion Time.`);
 		} else if (ballot.startTimestamp >= ballot.endTimestamp) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting ending time preceeds starting.`);
+		} else if (isNaN(ballot.minVotingThreshold) || ballot.minVotingThreshold < 0 || ballot.minVotingThreshold > 1) {
+			this.logger.verbose(
+				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Minimum Voting Threshold, must be a fraction between 0 and 1.0 inclusive.`,
+			);
+		} else if (!Array.isArray(ballot.ineligibleAccounts)) {
+			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ineligible account list is not an array.`);
+		} else if (-1 !== ballot.ineligibleAccounts.findIndex((a) => !is_entity_id[a])) {
+			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Found invalid account id in list of inelegible accounts.`);
 		} else {
-			return () => {
-				if (this.dataService.getBallot(ballot.consensusTimestamp)) {
-					this.logger.verbose(
-						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ballot with same consensus timestamp already exists.`,
-					);
+			return async () => {
+				if (await this.dataService.getBallot(ballot.consensusTimestamp)) {
+					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ballot with same consensus timestamp already exists.`);
 				} else {
 					this.dataService.setBallot(ballot);
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} added Ballot ${ballot.consensusTimestamp} to list.`);
 				}
-				return Promise.resolve();
 			};
 		}
 		// Do nothing, this was not a valid ballot.

@@ -2,9 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HcsBallotProcessingService } from './hcs-ballot-processing.service';
 import { MirrorClientService } from './mirror-client.service';
 import { HcsVoteProcessingService } from './hcs-vote-processing.service';
-import { DataService } from './data.service';
 import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
 import { MessageInfo } from '@bugbytes/hapi-mirror';
+import { TimestampKeyString, timestamp_to_keyString } from '@bugbytes/hapi-util';
+import { DataService } from './data.service';
 /**
  * Root HCS message processing pipeline.  This service receives raw HCS
  * messages for the topic.  It validates each message, determining if
@@ -65,7 +66,7 @@ export class HcsMessageProcessingService {
 		private readonly hcsVoteProcessor: HcsVoteProcessingService,
 		private readonly mirrorClient: MirrorClientService,
 		private readonly dataService: DataService,
-	) { }
+	) {}
 	/**
 	 * Process (or Queues for processing) a raw HCS native message.
 	 * If the message passes initial validation checks it is forwarded
@@ -118,7 +119,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param timestamp the HAPI Epoch encoded startup timestamp.
 	 */
-	setStartupTimestamp(timestamp: string) {
+	setStartupTimestamp(timestamp: TimestampKeyString) {
 		this.dataService.setLastUpdated(timestamp);
 	}
 	/**
@@ -147,8 +148,7 @@ export class HcsMessageProcessingService {
 			previousTask = null;
 			await nextTask();
 			if (hcsMessage.consensusTimestamp) {
-				const timestamp = `${hcsMessage.consensusTimestamp.seconds}.${hcsMessage.consensusTimestamp.nanos.toString().padStart(6, '0')}`;
-				this.dataService.setLastUpdated(timestamp);
+				this.dataService.setLastUpdated(timestamp_to_keyString(hcsMessage.consensusTimestamp));
 			}
 			this.activeCount = this.activeCount - 1;
 			if (this.taskQueue.length > 0) {

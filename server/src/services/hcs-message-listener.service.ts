@@ -33,7 +33,7 @@ export class HcsMessageListenerService {
 	 * @param processor The root message processing service, it makes decisions
 	 * on message validity and forwards valid messages to other services for processing.
 	 */
-	constructor(private readonly network: NetworkConfigurationService, private readonly processor: HcsMessageProcessingService) { }
+	constructor(private readonly network: NetworkConfigurationService, private readonly processor: HcsMessageProcessingService) {}
 	/**
 	 * The root method call initiating the HCS message listening process,
 	 * the `Timeout` attribute instructs the NestJS framework to call this
@@ -44,15 +44,17 @@ export class HcsMessageListenerService {
 	@Timeout(2500)
 	processHcsMessages(): void {
 		this.logger.log('Starting HCS Topic Listener');
-		const consensusStartTime = keyString_to_timestamp(is_timestamp(this.network.hcsStartDate) ? this.network.hcsStartDate : "0.0");
+		const consensusStartTime = keyString_to_timestamp(is_timestamp(this.network.hcsStartDate) ? this.network.hcsStartDate : '0.0');
 		if (consensusStartTime.seconds > 0) {
 			this.logger.log(`Skipping HCS Messages prior to ${this.network.hcsStartDate}`);
 			this.processor.setStartupTimestamp(this.network.hcsStartDate);
 		}
-		const topicQuery = ConsensusTopicQuery.encode(ConsensusTopicQuery.fromPartial({
-			topicID: keyString_to_topicID(this.network.hcsTopic as EntityIdKeyString),
-			consensusStartTime
-		})).finish();
+		const topicQuery = ConsensusTopicQuery.encode(
+			ConsensusTopicQuery.fromPartial({
+				topicID: keyString_to_topicID(this.network.hcsTopic as EntityIdKeyString),
+				consensusStartTime,
+			}),
+		).finish();
 		const credentials = this.network.mirrorGrpc.endsWith(':443') ? ChannelCredentials.createSsl() : ChannelCredentials.createInsecure();
 		new Client(this.network.mirrorGrpc, credentials)
 			.makeServerStreamRequest(

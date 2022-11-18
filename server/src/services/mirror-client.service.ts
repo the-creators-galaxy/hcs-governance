@@ -24,7 +24,7 @@ export class MirrorClientService {
 	 * such as the id of the voting token.
 	 */
 	constructor(private readonly network: NetworkConfigurationService) {
-		this.client = new MirrorRestClient(this.network.mirrorRest)
+		this.client = new MirrorRestClient(this.network.mirrorRest);
 	}
 	/**
 	 * Retrieves the token information for the token identified in the
@@ -33,14 +33,16 @@ export class MirrorClientService {
 	 * @returns A `TokenSummary` object describing the voting token to be
 	 * used in processing.  If not found, an error is raised.
 	 */
-	async getHcsTokenSummary(): Promise<TokenSummary> {
-		const record = await this.client.getTokenInfo(this.network.hcsToken as unknown as EntityIdKeyString);
+	async getHcsTokenSummary(timestamp: TimestampKeyString | undefined = undefined): Promise<TokenSummary> {
+		const record = await this.client.getTokenInfo(this.network.hcsToken as unknown as EntityIdKeyString, timestamp);
 		return {
 			id: record.token_id as unknown as EntityIdKeyString,
 			symbol: record.symbol,
 			name: record.name,
-			decimals: parseInt(record.decimals, 10)
-		}
+			decimals: parseInt(record.decimals, 10),
+			circulation: parseInt(record.total_supply, 10),
+			modified: record.modified_timestamp as unknown as TimestampKeyString,
+		};
 	}
 	/**
 	 * Retrieves the corresponding mirror node record for a given HCS
@@ -66,7 +68,9 @@ export class MirrorClientService {
 					this.logger.verbose(`HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic} is not yet available, will Retry.`);
 					await new Promise((resolve) => setTimeout(resolve, 7000));
 				} else {
-					this.logger.error(`Error fetching HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic}, failed with code: ${ex.status || ex.message}`);
+					this.logger.error(
+						`Error fetching HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic}, failed with code: ${ex.status || ex.message}`,
+					);
 					throw ex;
 				}
 			}
@@ -89,7 +93,7 @@ export class MirrorClientService {
 		try {
 			return await this.client.getTokenBalance(accountId, tokenId, timestamp);
 		} catch (ex) {
-			return { timestamp, account: accountId, token: tokenId, balance: 0 }
+			return { timestamp, account: accountId, token: tokenId, balance: 0 };
 		}
 	}
 	/**

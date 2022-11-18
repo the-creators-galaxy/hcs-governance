@@ -1,3 +1,4 @@
+import { TimestampKeyString } from '@bugbytes/hapi-util';
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { Ballot } from './models/ballot';
 import { TokenSummary } from './models/token-summary';
@@ -20,11 +21,7 @@ export class AppController {
 	 * @param dataService The central data storage service, containing the listing
 	 * of proposal ballots and votes.
 	 */
-	constructor(
-		private readonly config: NetworkConfigurationService,
-		private readonly tokenSummary: TokenSummary,
-		private readonly dataService: DataService,
-	) { }
+	constructor(private readonly config: NetworkConfigurationService, private readonly tokenSummary: TokenSummary, private readonly dataService: DataService) {}
 	/**
 	 * @returns basic public configuration information for this service and the
 	 * latest known timestamp, useful for displaying in the user interface.
@@ -38,15 +35,17 @@ export class AppController {
 			hcsTopic: this.config.hcsTopic,
 			hcsStartDate: this.config.hcsStartDate,
 			lastUpdated: this.dataService.getLastUpdated(),
-			version: process.env.npm_package_version || 'unknown',
+			ineligible: this.config.ineligibleAccounts,
+			threshold: this.config.minVotingThreshold,
+			version: process.env.npm_package_version || 'unknown'
 		};
 	}
 	/**
 	 * @returns the list of ballots known by this system.
 	 */
 	@Get('ballots')
-	getBallots(): Ballot[] {
-		return this.dataService.getBallots();
+	async getBallots(): Promise<Ballot[]> {
+		return await this.dataService.getBallots();
 	}
 	/**
 	 * @param ballotId id of the ballot to retrieve.
@@ -54,11 +53,10 @@ export class AppController {
 	 * @returns Returns the details of a given ballot by id, including votes and tallies (if known).
 	 */
 	@Get('ballots/:ballotId')
-	getBallot(@Param('ballotId') ballotId: string): (Ballot & Votes) | undefined {
-		const ballot = this.dataService.getBallot(ballotId);
-		if (ballot) {
-			const votes = this.dataService.getVotes(ballotId);
-			return Object.assign({}, ballot, { votes });
+	async getBallot(@Param('ballotId') ballotId: TimestampKeyString): Promise<(Ballot & Votes) | undefined> {
+		const result = await this.dataService.getBallotAndVotes(ballotId);
+		if (result) {
+			return result;
 		}
 		throw new NotFoundException();
 	}

@@ -1,4 +1,4 @@
-import { EntityIdKeyString, TimestampKeyString } from "@bugbytes/hapi-util";
+import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 
 /**
  * Stores the details of a proposal ballot (excluding individual votes cast).
@@ -52,6 +52,18 @@ export interface Ballot {
 	 * in hedera 0000.0000 epoch string format.
 	 */
 	endTimestamp: TimestampKeyString;
+	/**
+	 * The minimum fraction of voting token balance that must
+	 * participate in ballot voting for the proposal tally to
+	 * be considered valid.  Does not consider the balances of
+	 * ineligible acocunts in the calculation.
+	 */
+	minVotingThreshold: number;
+	/**
+	 * A list of accounts that may not participate in this
+	 * proposal ballot vote.
+	 */
+	ineligibleAccounts: EntityIdKeyString[];
 	/**
 	 * The tally of votes (by voting token balance weight)
 	 * which may be computed after the voting window has closed.

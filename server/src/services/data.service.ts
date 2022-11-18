@@ -1,8 +1,9 @@
-import { date_to_keyString } from '@bugbytes/hapi-util';
+import { date_to_keyString, EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable } from '@nestjs/common';
 import { Ballot } from 'src/models/ballot';
 import { Vote } from 'src/models/vote';
 import * as crypto from 'crypto';
+import { MirrorClientService } from './mirror-client.service';
 /**
  * Internal tracking of the last HCS timestamp processed,
  * this is necessary to track when voting windows should
@@ -30,13 +31,13 @@ let scheduledCheck = null;
  * voting token.  The key to the map is the consensus timestamp of the
  * ballot’s creation message.
  */
-const ballots = new Map<string, Ballot>();
+const ballots = new Map<TimestampKeyString, Ballot>();
 /**
  * Internal map of all the votes fore each ballot for this HCS topic and
  * voting token.  The key to the map is the consensus timestamp of each
  * ballot’s creation message.
  */
-const votes = new Map<string, Map<string, Vote>>();
+const votes = new Map<TimestampKeyString, Map<EntityIdKeyString, Vote>>();
 /**
  * The central data storage service holding the proposal ballots and their
  * votes.  The state it holds is built up over time by processing HCS
@@ -47,6 +48,14 @@ const votes = new Map<string, Map<string, Vote>>();
  */
 @Injectable()
 export class DataService {
+	/**
+	 * Public constructor requries a reference to the mirror client.
+	 *
+	 * @param mirrorService reference to the underlying networ's mirror
+	 * service, necessary to retrieve information for computing the vote
+	 * checksum.
+	 */
+	constructor(private readonly mirrorService: MirrorClientService) {}
 	/**
 	 * Gets the date and time of the last HCS message processed by this
 	 * service (typically in the form of recording ballots and votes) or
@@ -68,11 +77,12 @@ export class DataService {
 	 * @param timestamp The value of the time stamp in hedera 0000.0000
 	 * epoch string format.
 	 */
-	setLastUpdated(timestamp: string) {
+	setLastUpdated(timestamp: TimestampKeyString) {
+		const client = this.mirrorService;
 		if (timestamp > lastUpdated) {
 			lastUpdated = timestamp;
 			if (!scheduledCheck) {
-				scheduledCheck = setTimeout(() => ensureChecksums(), 1000);
+				scheduledCheck = setTimeout(() => ensureChecksums(client), 1000);
 			}
 		}
 	}
@@ -83,9 +93,12 @@ export class DataService {
 	 *
 	 * @returns Proposal ballot information for the given id, or undefined if not found.
 	 */
-	getBallot(consensusTimestamp: string): Ballot | undefined {
-		ensureChecksums();
-		return ballots.get(consensusTimestamp);
+	async getBallot(consensusTimestamp: TimestampKeyString): Promise<Ballot | undefined> {
+		const ballot = ballots.get(consensusTimestamp);
+		if (ballot) {
+			await computeChecksumIfNecessary(this.mirrorService, ballot);
+		}
+		return ballot;
 	}
 	/**
 	 * Adds a new ballot to the map of ballots.
@@ -104,8 +117,8 @@ export class DataService {
 	 * by ballots not yet opened for voting following by ballots
 	 * that have been closed and their votes have been tallied.
 	 */
-	getBallots(): Ballot[] {
-		ensureChecksums();
+	async getBallots(): Promise<Ballot[]> {
+		ensureChecksums(this.mirrorService);
 		const now = date_to_keyString(new Date());
 		return Array.from(ballots.values()).sort((a, b) => {
 			const aVoting = a.startTimestamp <= now && now <= a.endTimestamp;
@@ -126,12 +139,12 @@ export class DataService {
 	 * @param vote The vote details, including voting account, choice and voting
 	 * token balance.
 	 */
-	addVote(ballotId: string, vote: Vote) {
-		const ballot = this.getBallot(ballotId);
+	addVote(ballotId: TimestampKeyString, vote: Vote) {
+		const ballot = ballots.get(ballotId);
 		if (ballot) {
 			let ballotVotes = votes.get(ballot.consensusTimestamp);
 			if (!ballotVotes) {
-				ballotVotes = new Map<string, Vote>();
+				ballotVotes = new Map<EntityIdKeyString, Vote>();
 				votes.set(ballot.consensusTimestamp, ballotVotes);
 			}
 			ballotVotes.set(vote.payerId, vote);
@@ -144,20 +157,22 @@ export class DataService {
 		}
 	}
 	/**
-	 * Retrieves the list of (valid) votes for a given proposal ballot.
+	 * Retrieves the ballot and list of (valid) votes for a given proposal ballot.
 	 *
 	 * @param ballotId The identifier (consensus timestamp) of the
 	 * proposal ballot to retrieve.
 	 *
-	 * @returns An array of votes for the associated ballot, in descending
-	 * order of voting token balance.
+	 * @returns The ballot information with an additional `votes` property enumerating
+	 * hte votes for the associated ballot, in descending order of voting token balance.
 	 */
-	getVotes(ballotId: string): Vote[] {
-		ensureChecksums();
-		const ballotVotes = votes.get(ballotId);
-		const result = ballotVotes ? Array.from(ballotVotes.values()) : [];
-		result.sort((a, b) => b.tokenBalance - a.tokenBalance);
-		return result;
+	async getBallotAndVotes(ballotId: TimestampKeyString): Promise<(Ballot & { votes: Vote[] }) | undefined> {
+		const ballot = await this.getBallot(ballotId);
+		if (ballot) {
+			const list = Array.from((votes.get(ballotId) || []).values());
+			list.sort((a, b) => b.tokenBalance - a.tokenBalance);
+			return Object.assign({}, ballot, { votes: list });
+		}
+		return undefined;
 	}
 }
 /**
@@ -167,14 +182,14 @@ export class DataService {
  * typically polled when not actively processing but may be invoked
  * just prior to retrieving ballot lists or a particular ballot detail.
  */
-function ensureChecksums() {
+function ensureChecksums(client: MirrorClientService) {
 	if (scheduledCheck) {
 		clearTimeout(scheduledCheck);
 		scheduledCheck = null;
 	}
 	if (lastChecksum < lastUpdated) {
 		for (const ballot of ballots.values()) {
-			computeChecksumIfNecessary(ballot);
+			computeChecksumIfNecessary(client, ballot);
 		}
 		lastChecksum = lastUpdated;
 	}
@@ -185,16 +200,30 @@ function ensureChecksums() {
  *
  * @param ballot the proposal ballot to exaxmine.  May be mutated by this function.
  */
-function computeChecksumIfNecessary(ballot: Ballot) {
+async function computeChecksumIfNecessary(client: MirrorClientService, ballot: Ballot) {
 	if (!ballot || ballot.checksum || lastUpdated < ballot.endTimestamp) {
 		return;
 	}
 	const voteMap = votes.get(ballot.consensusTimestamp);
 	const voteList = voteMap ? Array.from(voteMap.values()) : [];
 	voteList.sort((a, b) => a.payerId.localeCompare(b.payerId));
-	const winner = computeWinner(ballot.tally);
+	// Compute the required threshold of voted
+	// balance necessary to pass the ballot.
+	let threshold = 0;
+	if (ballot.minVotingThreshold > 0) {
+		const circulation = (await client.getHcsTokenSummary(ballot.startTimestamp)).circulation;
+		const ineligible =
+			ballot.ineligibleAccounts.length > 0
+				? (await Promise.all(ballot.ineligibleAccounts.map((a) => client.getTokenBalance(a, ballot.tokenId, ballot.startTimestamp))))
+						.map((b) => b.balance)
+						.reduce((a, b) => a + b, 0)
+				: 0;
+		threshold = Math.round(ballot.minVotingThreshold * (circulation - ineligible));
+	}
+	const winner = computeWinner(ballot.tally, threshold);
 	const data: string[] = [];
 	data.push(ballot.consensusTimestamp);
+	data.push(`${threshold}`);
 	for (const vote of voteList) {
 		data.push(`${vote.payerId}-${vote.vote}-${vote.tokenBalance}`);
 	}
@@ -216,10 +245,16 @@ function computeChecksumIfNecessary(ballot: Ballot) {
  * @param tally An array of pre-computed values of the sums of the votes for
  * each proposal ballot choice.
  *
- * @returns The index of the choice with the most votes, or -1 if there
- * is no winning vote (a tie).
+ * @returns The index of the choice with the most votes,
+ * or -1 if there is no winning vote (a tie),
+ * or -2 if not enough balace voted to meet the threshold.
  */
-function computeWinner(tally: number[]) {
+function computeWinner(tally: number[], threshold: number) {
+	const tot = tally.reduce((a, b) => a + b, 0);
+	if (tot < threshold) {
+		// voting balance threshold was not met.
+		return -2;
+	}
 	let winner = 0;
 	for (let i = 1; i < tally.length; i++) {
 		if (tally[i] > tally[winner]) {
