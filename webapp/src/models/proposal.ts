@@ -1,5 +1,6 @@
 import { ProposalStatus } from "@/models/proposal-status";
 import { dateFromEpoch } from "@/models/epoch";
+import type { EntityIdKeyString } from "@bugbytes/hapi-util";
 /**
  * Interface holding proposal information to display.
  */
@@ -101,6 +102,8 @@ export interface ProposalDetail {
   choices: string[];
   expires: number;
   status: ProposalStatus;
+  threshold: number;
+  ineligible: EntityIdKeyString[];
   startTimestamp: string;
   endTimestamp: string;
   tally: number[];
@@ -132,6 +135,8 @@ export async function getProposalDetails(
     choices: json.choices,
     startTimestamp: json.startTimestamp,
     endTimestamp: json.endTimestamp,
+    threshold: json.minVotingThreshold,
+    ineligible: json.ineligibleAccounts,
     tally: json.tally,
     votes: json.votes,
     winner: json.winner,

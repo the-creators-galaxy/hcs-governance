@@ -18,6 +18,7 @@ import ButtonPanel from "@/components/ButtonPanel.vue";
 import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
 import LeafPageContainer from "../components/LeafPageContainer.vue";
 import { pairedWallet } from "@/models/hashconnect";
+import { network } from "@/models/info";
 
 const dateDialog = ref<any>();
 const submitDialog = ref<any>();
@@ -61,6 +62,8 @@ function showPreview() {
     status: ProposalStatus.Voting,
     startTimestamp: floorEpochFromDate(ballot.value.startDate) || "",
     endTimestamp: ceilingEpochFromDate(ballot.value.endDate) || "",
+    threshold: network.value.threshold,
+    ineligible: network.value.ineligible,
     tally: [],
     votes: [],
     winner: -1,

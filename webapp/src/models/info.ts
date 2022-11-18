@@ -49,6 +49,17 @@ export interface NetworkInfo {
    */
   hcsStartDate: TimestampKeyString;
   /**
+   * If configured, the minimum fraction of balance that must participate
+   * in a ballot vote for it to be considered valid.  This value should be
+   * respected when creating new ballot definitions.
+   */
+  threshold: number;
+  /**
+   * If configured, a list of accounts that should not participate in ballot
+   * votes.  This value should be respected when creating new ballot definitions.
+   */
+  ineligible: EntityIdKeyString[];
+  /**
    * The web software user interface version.
    */
   uiVersion: string;
@@ -98,6 +109,8 @@ export async function refreshInfo(): Promise<void> {
     mirrorRest: json.mirrorRest,
     hcsTopic: json.hcsTopic,
     hcsStartDate: json.hcsStartDate,
+    threshold: json.threshold ? parseFloat(json.threshold) : 0,
+    ineligible: json.ineligible || [],
     uiVersion: __APP_VERSION__,
     apiVersion: json.version,
   };

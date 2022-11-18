@@ -100,7 +100,7 @@ export class HcsBallotProcessingService {
 			);
 		} else if (!Array.isArray(ballot.ineligibleAccounts)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ineligible account list is not an array.`);
-		} else if (-1 !== ballot.ineligibleAccounts.findIndex((a) => !is_entity_id[a])) {
+		} else if (-1 !== ballot.ineligibleAccounts.findIndex((a) => !is_entity_id(a))) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Found invalid account id in list of inelegible accounts.`);
 		} else {
 			return async () => {
