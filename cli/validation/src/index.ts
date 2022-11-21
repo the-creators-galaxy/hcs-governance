@@ -111,7 +111,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if(createMessage.threshold > 0.0) {
                 if (ineligible.length > 0) {
                     let ineligibleBalances = 0;
-                    for (const addr of ballotInfo.ineligible) {
+                    for (const addr of ineligible) {
                         const balanceList = await getHcsAccountBalance(hostname, addr, ballotInfo.startVoting);
                         if (balanceList &&
                             balanceList.balances &&
@@ -185,19 +185,25 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
     }
 
     function tallyVotes() {
+        winner = 0;
         tally = Array<number>(ballotInfo.choices.length).fill(0);
         for (const vote of votes.values()) {
             tally[vote.choice] = tally[vote.choice] + vote.balance;
         }
-        winner = 0;
-        for (let i = 1; i < tally.length; i++) {
-            if (tally[i] > tally[winner]) {
-                winner = i;
+        const tot = tally.reduce((a, b) => a + b, 0);
+        if (tot < ballotInfo.threshold) {
+            // voting balance threshold was not met.
+            winner = -2;
+        } else {
+            for (let i = 1; i < tally.length; i++) {
+                if (tally[i] > tally[winner]) {
+                    winner = i;
+                }
             }
-        }
-        // Double Check for Ties
-        if (tally.filter(t => t == tally[winner]).length > 1) {
-            winner = -1;
+            // Double Check for Ties
+            if (tally.filter(t => t == tally[winner]).length > 1) {
+                winner = -1;
+            }    
         }
     }
 
@@ -216,7 +222,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
         if (winner > -1) {
             data.push(`${winner}:${ballotInfo.choices[winner]}`);
         } else {
-            data.push('-1');
+            data.push(`${winner}`);
         }
         hashData = data.join('|');
     }
