@@ -37,7 +37,7 @@ export class AppController {
 			lastUpdated: this.dataService.getLastUpdated(),
 			ineligible: this.config.ineligibleAccounts,
 			threshold: this.config.minVotingThreshold,
-			version: process.env.npm_package_version || 'unknown'
+			version: process.env.npm_package_version || 'unknown',
 		};
 	}
 	/**

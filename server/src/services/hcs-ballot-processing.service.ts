@@ -95,7 +95,9 @@ export class HcsBallotProcessingService {
 		} else if (ballot.startTimestamp >= ballot.endTimestamp) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting ending time preceeds starting.`);
 		} else if (ballot.consensusTimestamp > ballot.startTimestamp) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Proposal Voting Starting Time preceeds Proposal Creation Time.`);
+			this.logger.verbose(
+				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Proposal Voting Starting Time preceeds Proposal Creation Time.`,
+			);
 		} else if (isNaN(ballot.minVotingThreshold) || ballot.minVotingThreshold < 0 || ballot.minVotingThreshold > 1) {
 			this.logger.verbose(
 				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Minimum Voting Threshold, must be a fraction between 0 and 1.0 inclusive.`,

@@ -27,9 +27,9 @@ export interface Proposal {
   discussion: string;
   /**
    * An array of choices that may be cast.  At this time the first is
-   * 'Yes' (index 0) and the second is 'No' (index 1).  The system will
-   * treat the first in the list as the affirmative vote and all others
-   * as negative votes.
+   * 'Yes' (index 0) and the second is 'No' (index 1) and the third
+   * (index 2) is 'Abstain'.  The system will treat the first in the
+   * list as the affirmative vote and all others as non-affirmative votes.
    */
   choices: string[];
   /**

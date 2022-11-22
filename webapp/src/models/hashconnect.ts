@@ -1,16 +1,42 @@
-import { closeWallet, getConnectedAccount, initializeHashconnect, openPairRequest, sendTransaction, type TransactionResponse, type WalletMetadata } from "@bugbytes/hapi-connect";
-import { ConsensusSubmitMessageTransactionBody, SignatureMap, SignedTransaction, Transaction, TransactionBody } from "@bugbytes/hapi-proto";
-import { clockTimestamp, keyString_to_accountID, keyString_to_topicID, type EntityIdKeyString } from "@bugbytes/hapi-util";
+import {
+  closeWallet,
+  getConnectedAccount,
+  initializeHashconnect,
+  openPairRequest,
+  sendTransaction,
+  type TransactionResponse,
+  type WalletMetadata,
+} from "@bugbytes/hapi-connect";
+import {
+  ConsensusSubmitMessageTransactionBody,
+  SignatureMap,
+  SignedTransaction,
+  Transaction,
+  TransactionBody,
+} from "@bugbytes/hapi-proto";
+import {
+  clockTimestamp,
+  keyString_to_accountID,
+  keyString_to_topicID,
+  type EntityIdKeyString,
+} from "@bugbytes/hapi-util";
 import { ref } from "vue";
 import { network } from "./info";
 
-export const pairedWallet = ref<WalletMetadata | undefined>(initializeHashconnect());
+export const pairedWallet = ref<WalletMetadata | undefined>(
+  initializeHashconnect()
+);
 
 export function openHashconnectPairRequest(): string {
   closeWallet();
-  const networkName = network.value.network.toLowerCase() == "mainnet" ? "mainnet" : "testnet";
-  var req = openPairRequest('TCG Governance', 'TCG Governance App', networkName);  
-  req.pairCompleted.then(w => pairedWallet.value = w);
+  const networkName =
+    network.value.network.toLowerCase() == "mainnet" ? "mainnet" : "testnet";
+  const req = openPairRequest(
+    "TCG Governance",
+    "TCG Governance App",
+    networkName
+  );
+  req.pairCompleted.then((w) => (pairedWallet.value = w));
   return req.pairingString;
 }
 

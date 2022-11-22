@@ -167,14 +167,18 @@ async Task GetProposalInfo()
         var ineligible = createMessage.IneligibleAcocunts ?? Array.Empty<string>();
         if (createMessage.RequiredThreshold.GetValueOrDefault() > 0.0)
         {
+            if (!ulong.TryParse(tokenInfo.Circulation, out ulong circulation))
+            {
+                throw new Exception("Voting token total supply is not available.");
+            }
             if (ineligible.Length > 0)
             {
                 var ineligibleBalances = 0UL;
                 foreach (var addr in ineligible)
                 {
-                    var balanceList = await GetHcsAccountBalance(addr, proposalInfo.StartVoting);
+                    var balanceList = await GetHcsAccountBalance(addr, createMessage.StartTimestamp);
                     if (balanceList is not null &&
-                        proposalInfo.StartVoting.CompareTo(balanceList.Timestamp) >= 0 &&
+                        createMessage.StartTimestamp.CompareTo(balanceList.Timestamp) >= 0 &&
                         balanceList.AccountBalances is not null &&
                         balanceList.AccountBalances.Length == 1)
                     {
@@ -183,7 +187,7 @@ async Task GetProposalInfo()
                             addr.Equals(balances.Account) &&
                             balances.Tokens is not null)
                         {
-                            var tokenBalance = balances.Tokens.FirstOrDefault(b => proposalInfo.TokenId.Equals(b.TokenId));
+                            var tokenBalance = balances.Tokens.FirstOrDefault(b => createMessage.TokenId.Equals(b.TokenId));
                             if (tokenBalance is not null &&
                                 tokenBalance.Balance > 0)
                             {
@@ -192,11 +196,11 @@ async Task GetProposalInfo()
                         }
                     }
                 }
-                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * ((ulong)tokenInfo.Circulation - ineligibleBalances));
+                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * (circulation - ineligibleBalances));
             }
             else
             {
-                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * tokenInfo.Circulation);
+                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * circulation);
             }
         }
         proposalInfo = new ProposalInfo
@@ -276,15 +280,17 @@ void TallyVotes()
     }
     else
     {
-        for (int i = 1; i < tally.Length; i++)
+        // If more than 2 choices, assume last is Abstain
+        var list = tally.Length > 2 ? tally.Take(tally.Length - 1).ToArray() : tally;
+        for (int i = 1; i < list.Length; i++)
         {
-            if (tally[i] > tally[winner])
+            if (list[i] > list[winner])
             {
                 winner = i;
             }
         }
         // Double Check for Ties
-        if (tally.Count(t => t == tally[winner]) > 1)
+        if (list.Count(t => t == list[winner]) > 1)
         {
             winner = -1;
         }
@@ -535,8 +541,8 @@ public class HcsTokenInfo
     public string CreatedTimestamp { get; set; }
     [JsonPropertyName("type")]
     public string TokenType { get; set; }
-    [JsonPropertyName("circulation")]
-    public long Circulation { get; set; }
+    [JsonPropertyName("total_supply")]
+    public string Circulation { get; set; }
     [JsonPropertyName("deleted")]
     public bool Deleted { get; set; }
 }

@@ -10,8 +10,7 @@ import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 import { submitHcsMessage } from "@/models/hashconnect";
 
-let resolveFn: ((value: boolean) => void) | null = null;
-let rejectFn: ((value: string) => void) | null = null;
+let resolveFn: (() => void) | null = null;
 
 const dialog = ref<any>();
 const payload = ref<string>();
@@ -26,13 +25,12 @@ onMounted(() => {
 function trySubmitCastVote(
   { ballotId, vote }: CastVoteParams,
   voteDescription: string
-): Promise<boolean> {
+): Promise<void> {
   return new Promise((resolve, reject) => {
     if (dialog.value.open) {
       reject("Dialog is Already Open");
     } else {
       resolveFn = resolve;
-      rejectFn = reject;
       payload.value = JSON.stringify({
         type: "cast-vote",
         ballotId: ballotId,
@@ -49,17 +47,16 @@ function trySubmitCastVote(
 function onCancel() {
   if (dialog.value.open) {
     dialog.value.close();
-    if (rejectFn) {
-      rejectFn("Dialog was closed without taking action.");
+    if (resolveFn) {
+      resolveFn();
       resolveFn = null;
-      rejectFn = null;
     }
   }
 }
 
 function onCopyToClipboard() {
   if (dialog.value.open) {
-    navigator.clipboard.writeText(payload.value!);
+    navigator.clipboard.writeText(payload.value!); // eslint-disable-line
   }
 }
 
@@ -67,7 +64,7 @@ function onSendToHashconnect() {
   if (dialog.value.open) {
     result.value = null;
     requestSent.value = true;
-    submitHcsMessage(network.value.hcsTopic, payload.value!).then(
+    submitHcsMessage(network.value.hcsTopic, payload.value!).then( // eslint-disable-line
       (response) => {
         if (response.success) {
           result.value = {

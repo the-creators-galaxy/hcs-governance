@@ -57,7 +57,7 @@ function showPreview() {
     description: trimOptionalText(ballot.value.description),
     discussion: trimOptionalText(ballot.value.discussion),
     scheme: "single-choice",
-    choices: ["Yes", "No"],
+    choices: ["Yes", "No", "Abstain"],
     expires: 7,
     status: ProposalStatus.Voting,
     startTimestamp: floorEpochFromDate(ballot.value.startDate) || "",
@@ -82,7 +82,11 @@ function tryPublish() {
   errors.votingPeriod = !candidate.startDate || !candidate.endDate;
   validationErrors.value = errors;
   if (!errors.title && !errors.votingPeriod) {
-    if (currentGateway.value === GatewayProvider.None || (currentGateway.value === GatewayProvider.HashConnect && !pairedWallet.value)) {
+    if (
+      currentGateway.value === GatewayProvider.None ||
+      (currentGateway.value === GatewayProvider.HashConnect &&
+        !pairedWallet.value)
+    ) {
       signalConnectWallet.value = true;
     } else {
       submitDialog.value.trySubmitCreateBallot(ballot.value);
@@ -130,6 +134,11 @@ function tryPublish() {
             <div class="choice">
               <span class="number">2</span>
               <span class="text">No</span>
+              <button class="close" disabled></button>
+            </div>
+            <div class="choice">
+              <span class="number">3</span>
+              <span class="text">Abstain</span>
               <button class="close" disabled></button>
             </div>
             <button disabled>Add Choice</button>
