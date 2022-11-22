@@ -28,6 +28,7 @@ export interface HcsTokenInfo
     created_timestamp: string;
     type: string;
     deleted: boolean;
+    circulation: number;
 }
 
 export interface HcsChunkInfo
@@ -75,6 +76,8 @@ export interface HcsCreateProposalMessage
     choices: string[];
     startTimestamp: string;
     endTimestamp: string;
+    threshold: number,
+    ineligible: string[]
 }
 
 export interface Attestation
@@ -100,4 +103,6 @@ export interface BallotInfo
     choices: string[];
     startVoting: string;
     endVoting: string;
+    threshold: number;
+    ineligible: string[];
 }

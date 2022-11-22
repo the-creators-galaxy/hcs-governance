@@ -1,3 +1,5 @@
+import { date_to_keyString } from "@bugbytes/hapi-util";
+
 /**
  * Converts an Hedera Epoch Date String into a JavaScript date.
  *
@@ -24,7 +26,7 @@ export function ceilingEpochFromDate(
     const ceiling = new Date(date);
     ceiling.setDate(ceiling.getDate() + 1);
     ceiling.setUTCHours(0, 0, 0, 0);
-    return epochFromDate(ceiling);
+    return date_to_keyString(ceiling);
   }
   return undefined;
 }
@@ -41,23 +43,7 @@ export function floorEpochFromDate(date: Date | undefined): string | undefined {
   if (date) {
     const floor = new Date(date);
     floor.setUTCHours(0, 0, 0, 0);
-    return epochFromDate(floor);
-  }
-  return undefined;
-}
-/**
- * Converts a given JavaScript date to an Hedera Epoch Date String.
- *
- * @param date JavaScript date.
- *
- * @returns epoch date string.
- */
-export function epochFromDate(date: Date | undefined): string | undefined {
-  if (date) {
-    const miliseconds = date.getTime();
-    const seconds = Math.floor(miliseconds / 1000);
-    const nanoseconds = (miliseconds % 1000) * 1000;
-    return `${seconds}.${nanoseconds}`;
+    return date_to_keyString(floor);
   }
   return undefined;
 }

@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as hapi from '@hashgraph/proto';
 import { HcsBallotProcessingService } from './hcs-ballot-processing.service';
 import { MirrorClientService } from './mirror-client.service';
-import { HcsMessageMirrorRecord } from 'src/models/hcs-message-mirror-record';
 import { HcsVoteProcessingService } from './hcs-vote-processing.service';
+import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
+import { MessageInfo } from '@bugbytes/hapi-mirror';
+import { TimestampKeyString, timestamp_to_keyString } from '@bugbytes/hapi-util';
 import { DataService } from './data.service';
 /**
  * Root HCS message processing pipeline.  This service receives raw HCS
@@ -76,7 +77,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param hcsMessage The raw hcsMessage to be processed.
 	 */
-	processMessage(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): void {
+	processMessage(hcsMessage: ConsensusTopicResponse): void {
 		this.taskQueue.push(hcsMessage);
 		if (this.activeCount < 150) {
 			this.processMessageTask(this.taskQueue.shift());
@@ -118,7 +119,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param timestamp the HAPI Epoch encoded startup timestamp.
 	 */
-	setStartupTimestamp(timestamp: string) {
+	setStartupTimestamp(timestamp: TimestampKeyString) {
 		this.dataService.setLastUpdated(timestamp);
 	}
 	/**
@@ -138,7 +139,7 @@ export class HcsMessageProcessingService {
 	 *
 	 * @param hcsMessage The raw hcsMessage to be processed.
 	 */
-	private processMessageTask(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): void {
+	private processMessageTask(hcsMessage: ConsensusTopicResponse): void {
 		this.activeCount = this.activeCount + 1;
 		let previousTask = this.currentTask;
 		const thisTask = async () => {
@@ -147,8 +148,7 @@ export class HcsMessageProcessingService {
 			previousTask = null;
 			await nextTask();
 			if (hcsMessage.consensusTimestamp) {
-				const timestamp = `${hcsMessage.consensusTimestamp.seconds}.${hcsMessage.consensusTimestamp.nanos.toString().padStart(6, '0')}`;
-				this.dataService.setLastUpdated(timestamp);
+				this.dataService.setLastUpdated(timestamp_to_keyString(hcsMessage.consensusTimestamp));
 			}
 			this.activeCount = this.activeCount - 1;
 			if (this.taskQueue.length > 0) {
@@ -186,7 +186,7 @@ export class HcsMessageProcessingService {
 	 * while it is still asynchronous, processing of downstream messages
 	 * will block until the returned method resolves its promise.
 	 */
-	private async getNextTask(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): Promise<() => Promise<void>> {
+	private async getNextTask(hcsMessage: ConsensusTopicResponse): Promise<() => Promise<void>> {
 		const hcsPayload = this.parsePayload(hcsMessage);
 		if (!hcsPayload) {
 			return this.discardMessage;
@@ -214,7 +214,7 @@ export class HcsMessageProcessingService {
 	 * @returns A JSON object representing the CGIP-4 message payload,
 	 * or null if the message was invalid or no payload was found.
 	 */
-	private parsePayload(hcsMessage: hapi.com.hedera.mirror.api.proto.IConsensusTopicResponse): any | null {
+	private parsePayload(hcsMessage: ConsensusTopicResponse): any | null {
 		let hcsPayloadAsString: string;
 		let hcsPayload: any;
 		if (hcsMessage.chunkInfo) {
@@ -256,9 +256,9 @@ export class HcsMessageProcessingService {
 	 * @returns An HCS Mirror Record Object, or null if there was an
 	 * error or not found.
 	 */
-	private async getMirrorRecord(sequenceNumber: Long): Promise<HcsMessageMirrorRecord | null> {
+	private async getMirrorRecord(sequenceNumber: number): Promise<MessageInfo | null> {
 		try {
-			return await this.mirrorClient.getHcsMessageInfo(sequenceNumber);
+			return await this.mirrorClient.waitForHcsMessageInfo(sequenceNumber);
 		} catch (err) {
 			this.logger.verbose(`Message ${sequenceNumber} record was not found on mirror node: ${err.message || JSON.stringify(err)}`);
 			return null;

@@ -24,7 +24,9 @@ defineProps<{ proposal: Proposal | ProposalDetail }>();
   <div v-else class="indeterminate">
     <IndeterminateIcon />
     <template v-if="proposal.checksum">
-      <span class="symbol">No Majority Vote</span>
+      <span class="symbol" v-if="proposal.winner === -1">No Majority Vote</span>
+      <span class="symbol" v-else-if="proposal.winner === -2">Required Threshold Not Reached</span>
+      <span class="symbol" v-else>Other Tally Error</span>
       <span class="checksum">[{{ proposal.checksum }}]</span>
     </template>
     <template v-else> Results Unknown </template>

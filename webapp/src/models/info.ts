@@ -1,3 +1,5 @@
+import type { KnownNetwork } from "@bugbytes/hapi-connect";
+import type { EntityIdKeyString, TimestampKeyString } from "@bugbytes/hapi-util";
 import { ref } from "vue";
 /**
  * Voting token information.
@@ -6,7 +8,7 @@ export interface TokenInfo {
   /**
    * identifier of the token, in 0.0.123 string format.
    */
-  id: string;
+  id: EntityIdKeyString;
   /**
    * The token's Symbol value.
    */
@@ -27,7 +29,7 @@ export interface NetworkInfo {
   /**
    * The name of the hedera ledger that is being monitored.
    */
-  network: string;
+  network: KnownNetwork;
   /**
    * The gRPC endpoint for the mirror node that is providing
    * HCS messages to the server.
@@ -41,11 +43,22 @@ export interface NetworkInfo {
   /**
    * The HCS topic being monitored for proposal ballot messages.
    */
-  hcsTopic: string;
+  hcsTopic: EntityIdKeyString;
   /**
    * If configured, the startup date & time filter for processing messages.
    */
-  hcsStartDate: string;
+  hcsStartDate: TimestampKeyString;
+  /**
+   * If configured, the minimum fraction of balance that must participate
+   * in a ballot vote for it to be considered valid.  This value should be
+   * respected when creating new ballot definitions.
+   */
+  threshold: number;
+  /**
+   * If configured, a list of accounts that should not participate in ballot
+   * votes.  This value should be respected when creating new ballot definitions.
+   */
+  ineligible: EntityIdKeyString[];
   /**
    * The web software user interface version.
    */
@@ -58,28 +71,32 @@ export interface NetworkInfo {
 /**
  * Stores a persistent value for the voting token information.
  */
-export const token = ref<TokenInfo>({
-  id: "",
-  symbol: "",
-  name: "",
-  decimals: 0,
-});
+export const token = ref<TokenInfo>({} as TokenInfo);
 /**
  * Stores a persistent value for the network information.
  */
-export const network = ref<NetworkInfo>({
-  network: "disconnected",
-  mirrorGrpc: "",
-  mirrorRest: "",
-  hcsTopic: "",
-  hcsStartDate: "",
-  uiVersion: __APP_VERSION__,
-  apiVersion: "",
-});
+export const network = ref<NetworkInfo>({} as NetworkInfo);
 /**
  * Stores the latest updated timestamp retrieved from the remote server.
  */
 export const lastUpdated = ref<string>("0.0");
+/**
+* Method that invoked to ensure the configuration is loaded.
+* Components at the root of the dom tree should call this 
+* method in mount to ensure the `network` reference is 
+* properly initialized.  At this time that is the app root
+* and the header (which the app root displays during loading)
+* If the configuation does not pass sanity checks, a rejected
+* promise is returned and `network` and `token` will be in an
+* invalid state
+*/
+let loadTask: Promise<void>;
+export function ensureConfiguration(): Promise<void> {
+  if (!loadTask) {
+    loadTask = refreshInfo();
+  }
+  return loadTask;
+}
 /**
  * Method that invoked to refresh the network, token and timestamp information.
  */
@@ -92,6 +109,8 @@ export async function refreshInfo(): Promise<void> {
     mirrorRest: json.mirrorRest,
     hcsTopic: json.hcsTopic,
     hcsStartDate: json.hcsStartDate,
+    threshold: json.threshold ? parseFloat(json.threshold) : 0,
+    ineligible: json.ineligible || [],
     uiVersion: __APP_VERSION__,
     apiVersion: json.version,
   };
@@ -119,21 +138,20 @@ async function fetchRemoteInfo(): Promise<any> {
  *
  * @param url url for the remote network node.
  */
-function guessNetwork(url: string): string {
+function guessNetwork(url: string): KnownNetwork {
   if (url) {
     const parts = url.toLowerCase().trim().split(".");
     if (parts.length > 0) {
       switch (parts[0]) {
-        case "testnet":
-          return "Testnet";
-        case "mainnet":
-        case "mainnet-public":
-          return "Mainnet";
-        case "previewnet":
-          return "Previewnet";
-      }
+        case "https://testnet":
+          return "testnet";
+        case "https://mainnet":
+        case "https://mainnet-public":
+          return "mainnet";
+        case "https://previewnet":
+          return "previewnet";
+        }
     }
-    return url;
   }
-  return "unknown";
+  return "mainnet";
 }

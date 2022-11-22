@@ -40,6 +40,8 @@ function trySubmitCreateBallot(
         choices: ["Yes", "No"],
         startTimestamp: floorEpochFromDate(ballotParams.startDate),
         endTimestamp: ceilingEpochFromDate(ballotParams.endDate),
+        threshold: network.value.threshold,
+        ineligible: network.value.ineligible
       });
       requestSent.value = false;
       result.value = null;

@@ -1,3 +1,5 @@
+import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
+
 /**
  * Stores the details of a single proposal vote by a token holder.
  */
@@ -6,12 +8,12 @@ export interface Vote {
 	 * The date and time this vote was cast,
 	 * in hedera 0000.0000 epoch string format.
 	 */
-	consensusTimestamp: string;
+	consensusTimestamp: TimestampKeyString;
 	/**
 	 * The hedera account that cast the vote,
 	 * in 0.0.123 string format.
 	 */
-	payerId: string;
+	payerId: EntityIdKeyString;
 	/**
 	 * The vote choice, matches an index from the
 	 * proposals choice array.

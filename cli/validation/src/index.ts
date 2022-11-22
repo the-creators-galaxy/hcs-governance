@@ -81,6 +81,18 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if (currentTime < createMessage.endTimestamp) {
                 throw new Error('Voting has not completed for this proposal.');
             }
+            if (createMessage.threshold) {
+                if (createMessage.threshold < 0.0 || createMessage.threshold > 1.0) {
+                    throw new Error(`Proposal threshold is out of valid range of [0,1].`);
+                }
+            }
+            if (createMessage.ineligible && createMessage.ineligible.length > 0) {
+                for (let addr of createMessage.ineligible) {
+                    if (!isAddress(addr)) {
+                        throw new Error(`Proposal definition contains an invalid ineligible address.`);
+                    }
+                }
+            }
             const tokenInfo = await getHcsTokenInfo(hostname, createMessage.tokenId);
             if (!tokenInfo) {
                 throw new Error('Proposal Voting Token was not found.');
@@ -94,6 +106,33 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if ('FUNGIBLE_COMMON' !== tokenInfo.type) {
                 throw new Error('Proposal does not utilize a fungible voting token.');
             }
+            let threshold = 0;
+            let ineligible = createMessage.ineligible || [];
+            if(createMessage.threshold > 0.0) {
+                if (ineligible.length > 0) {
+                    let ineligibleBalances = 0;
+                    for (const addr of ineligible) {
+                        const balanceList = await getHcsAccountBalance(hostname, addr, ballotInfo.startVoting);
+                        if (balanceList &&
+                            balanceList.balances &&
+                            balanceList.balances.length === 1) {
+                            const balances = balanceList.balances[0];
+                            if (balances &&
+                                addr === balances.account &&
+                                balances.tokens) {
+                                const tokenBalance = balances.tokens.find(b => ballotInfo.tokenId === b.token_id);
+                                if (tokenBalance &&
+                                    tokenBalance.balance > 0) {
+                                    ineligibleBalances = ineligibleBalances + tokenBalance.balance;
+                                }
+                            }
+                        }
+                    }
+                    threshold = Math.round(createMessage.threshold * (tokenInfo.circulation - ineligibleBalances));
+                } else {
+                    threshold = Math.round(createMessage.threshold * tokenInfo.circulation);
+                }    
+            }
             ballotInfo =
             {
                 ballotId,
@@ -101,25 +140,27 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 topicId: hcsMessage.topic_id,
                 choices: createMessage.choices,
                 startVoting: createMessage.startTimestamp,
-                endVoting: createMessage.endTimestamp
+                endVoting: createMessage.endTimestamp,
+                threshold,
+                ineligible
             };
         }
         catch (err) {
             throw new Error(`Invalid Proposal with ID ${ballotId}: ${err}`);
         }
     }
-
     async function gatherVotes() {
         for await (const hcsMessage of getValidHcsMessagesInRange(hostname, ballotInfo.topicId, ballotInfo.startVoting, ballotInfo.endVoting)) {
             const jsonMessage = Buffer.from(hcsMessage.message, 'base64');
-            const voteMessage = JSON.parse(jsonMessage.toString('ascii')) as HcsVoteMessage;            
+            const voteMessage = JSON.parse(jsonMessage.toString('ascii')) as HcsVoteMessage;
             if (voteMessage &&
                 'cast-vote' === voteMessage.type &&
                 ballotId === voteMessage.ballotId &&
                 ballotInfo.startVoting <= hcsMessage.consensus_timestamp &&
                 ballotInfo.endVoting >= hcsMessage.consensus_timestamp &&
                 voteMessage.vote >= -1 &&
-                voteMessage.vote < ballotInfo.choices.length) {
+                voteMessage.vote < ballotInfo.choices.length &&
+                ballotInfo.ineligible.findIndex(addr => addr === hcsMessage.payer_account_id) === -1) {
                 const balanceList = await getHcsAccountBalance(hostname, hcsMessage.payer_account_id, ballotInfo.startVoting);
                 if (balanceList &&
                     ballotInfo.startVoting >= balanceList.timestamp &&
@@ -144,25 +185,32 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
     }
 
     function tallyVotes() {
+        winner = 0;
         tally = Array<number>(ballotInfo.choices.length).fill(0);
         for (const vote of votes.values()) {
             tally[vote.choice] = tally[vote.choice] + vote.balance;
         }
-        winner = 0;
-        for (let i = 1; i < tally.length; i++) {
-            if (tally[i] > tally[winner]) {
-                winner = i;
+        const tot = tally.reduce((a, b) => a + b, 0);
+        if (tot < ballotInfo.threshold) {
+            // voting balance threshold was not met.
+            winner = -2;
+        } else {
+            for (let i = 1; i < tally.length; i++) {
+                if (tally[i] > tally[winner]) {
+                    winner = i;
+                }
             }
-        }
-        // Double Check for Ties
-        if (tally.filter(t => t == tally[winner]).length > 1) {
-            winner = -1;
+            // Double Check for Ties
+            if (tally.filter(t => t == tally[winner]).length > 1) {
+                winner = -1;
+            }    
         }
     }
 
     function createHashData() {
         var data: string[] = [];
         data.push(ballotInfo.ballotId);
+        data.push(`${ballotInfo.threshold}`);
         const keys = [...votes.keys()].sort();
         for (const account of keys) {
             const vote = votes.get(account);
@@ -174,7 +222,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
         if (winner > -1) {
             data.push(`${winner}:${ballotInfo.choices[winner]}`);
         } else {
-            data.push('-1');
+            data.push(`${winner}`);
         }
         hashData = data.join('|');
     }

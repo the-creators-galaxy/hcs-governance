@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
 import MainHeader from "@/components/MainHeader.vue";
-import { onMounted } from "vue";
-import { network, refreshInfo } from "./models/info";
+import { onMounted, ref } from "vue";
+import { ensureConfiguration, network } from "./models/info";
+
+const loading = ref<boolean>(true);
+const configError = ref<string>('');
 
 onMounted(async () => {
-  await refreshInfo();
+  try {
+    await ensureConfiguration();
+  } catch (ex: any) {
+    configError.value = ex.message || 'Unknown Error';
+    console.dir(ex);
+  }
+  loading.value = false;
 });
 </script>
 
@@ -14,8 +23,12 @@ onMounted(async () => {
     <MainHeader />
   </div>
   <div class="main-content">
-    <RouterView v-if="network.hcsTopic" />
-    <div v-else class="loading">Loading...</div>
+    <div v-if="loading" class="loading">Loading...</div>
+    <div v-else-if="configError" class="startup-error">
+      <h1>A configuration error occurred.</h1>
+      <p>{{ configError }}</p>
+    </div>
+    <RouterView v-else />
   </div>
 </template>
 
@@ -40,5 +53,16 @@ div.main-content {
   margin: 0;
   padding: 5rem 0 0 0;
   z-index: 1;
+}
+
+div.startup-error {
+  margin: 30px 20px;
+  text-align: center;
+}
+
+div.startup-error>h1 {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--cds-ui-e-500);
 }
 </style>

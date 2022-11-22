@@ -9,7 +9,7 @@ import { MirrorClientService } from './services/mirror-client.service';
 import { HcsBallotProcessingService } from './services/hcs-ballot-processing.service';
 import { HcsVoteProcessingService } from './services/hcs-vote-processing.service';
 import { HcsMessageProcessingService } from './services/hcs-message-processing.service';
-import { TokenInfo } from './models/token-info';
+import { TokenSummary } from './models/token-summary';
 /**
  * Main NestJS application module.
  */
@@ -25,8 +25,8 @@ import { TokenInfo } from './models/token-info';
 		MirrorClientService,
 		DataService,
 		{
-			provide: TokenInfo,
-			useFactory: (mirrorClient: MirrorClientService) => mirrorClient.getHcsTokenInfo(),
+			provide: TokenSummary,
+			useFactory: (mirrorClient: MirrorClientService) => mirrorClient.getHcsTokenSummary(),
 			inject: [MirrorClientService],
 		},
 	],

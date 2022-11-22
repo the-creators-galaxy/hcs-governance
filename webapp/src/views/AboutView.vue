@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import EpochDateDisplay from "@/components/EpochDateDisplay.vue";
 import { network, token, lastUpdated, updateLastUpdated } from "@/models/info";
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import NavigationContainer from "../components/NavigationContainer.vue";
+
+const title = computed(() => token.value.name ? token.value.name.split(' ')[0]: 'Calaxy');
 
 onMounted(async () => {
   await updateLastUpdated();
@@ -11,7 +13,7 @@ onMounted(async () => {
 
 <template>
   <NavigationContainer>
-    <h2>Calaxy - $CLXY</h2>
+    <h2>{{title}} - ${{token.symbol}}</h2>
     <dl>
       <dt>About</dt>
       <dd>
@@ -41,7 +43,21 @@ onMounted(async () => {
       <dt>Coordinating Topic Address</dt>
       <dd>{{ network.hcsTopic }}</dd>
       <dt>Voting Token Address</dt>
-      <dd>{{ token.id }}</dd>
+      <dd>{{ token.id }}  ({{token.symbol}})</dd>
+      <template v-if="network.threshold">
+        <dt>Required Threshold</dt>
+        <dd>{{ network.threshold * 100 }}% of eligible voting balance (for newly created proposals)</dd>      
+      </template>
+      <template v-if="network.ineligible.length > 1">
+        <dt>Ineligible Accounts</dt>
+        <dd>
+          The following accounts may not participate in voting:
+          <ul>
+            <li v-for="acct in network.ineligible">{{acct}}</li>
+          </ul>
+          (for newly created proposals)
+        </dd>
+      </template>
       <dt>Versions</dt>
       <dd>User Inteface: {{ network.uiVersion }}</dd>
       <dd>API Server: {{ network.apiVersion }}</dd>
@@ -72,6 +88,7 @@ dd {
   margin: 0.25rem 0;
   padding: 0;
   overflow: hidden;
+  user-select: text;
 }
 
 dd + dt {

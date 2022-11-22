@@ -8,15 +8,13 @@ import {
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 import WalletIcon from "./icons/WalletIcon.vue";
-import {
-  hashconnectInfo,
-  initializeHashconnect,
-  openPairRequest,
-} from "@/models/hashconnect";
+import { pairedWallet, openHashconnectPairRequest, closeHashconnectWallet } from "@/models/hashconnect";
+import { ensureConfiguration } from "@/models/info";
 
 const dialog = ref<any>();
 const paringString = ref<string>();
 const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
+const configError = ref<string>('');
 
 async function onConnectWallet() {
   dialog.value.showModal();
@@ -37,14 +35,13 @@ function selectCopyPaste() {
 
 function selectHashConnect() {
   currentGateway.value = GatewayProvider.HashConnect;
-  initializeHashconnect();
-  if (!hashconnectInfo.value.pairedWallet) {
-    paringString.value = openPairRequest().pairingString;
+  if (!pairedWallet.value) {
+    paringString.value = openHashconnectPairRequest();
   }
 }
 
-function changeHashconnectWallet() {
-  paringString.value = openPairRequest().pairingString;
+function changeHashconnectWallet() {  
+  paringString.value = openHashconnectPairRequest();
 }
 
 function copyHahsconnectParingString() {
@@ -53,10 +50,19 @@ function copyHahsconnectParingString() {
 
 function closeHashConnect() {
   currentGateway.value = GatewayProvider.None;
+  closeHashconnectWallet();
 }
 
-onMounted(() => {
+onMounted(async () => {
   dialog.value.addEventListener("cancel", onCancel);
+  try {
+    await ensureConfiguration();
+    if(pairedWallet.value) {
+      currentGateway.value = GatewayProvider.HashConnect;
+    }
+  } catch (ex: any) {
+    configError.value = ex.message || 'Unknown Error';
+  }
 });
 
 watch(signalConnectWallet, (newValue) => {
@@ -69,21 +75,15 @@ watch(signalConnectWallet, (newValue) => {
 
 <template>
   <header class="main">
-    <button v-if="!supportsDialog" disabled>
+    <button v-if="!supportsDialog || !!configError" disabled>
       <span class="btn-icon">RO</span>
       <span class="btn-text">Read Only</span>
     </button>
-    <button
-      v-else-if="currentGateway === GatewayProvider.CopyAndPaste"
-      v-on:click="onConnectWallet"
-    >
+    <button v-else-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
       <CopyPasteIcon />
       <span class="btn-text">Copy / Paste JSON</span>
     </button>
-    <button
-      v-else-if="currentGateway === GatewayProvider.HashConnect"
-      v-on:click="onConnectWallet"
-    >
+    <button v-else-if="currentGateway === GatewayProvider.HashConnect" v-on:click="onConnectWallet">
       <HashConnectIcon />
       <span class="btn-text">HashConnect</span>
     </button>
@@ -109,7 +109,9 @@ watch(signalConnectWallet, (newValue) => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.CopyAndPaste">
       <header>
-        <div><CopyPasteIcon /> Copy / Paste JSON</div>
+        <div>
+          <CopyPasteIcon /> Copy / Paste JSON
+        </div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -124,22 +126,24 @@ watch(signalConnectWallet, (newValue) => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
       <header>
-        <div><HashConnectIcon /> HashConnect</div>
+        <div>
+          <HashConnectIcon /> HashConnect
+        </div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
         <div class="description">
-          <template v-if="hashconnectInfo.pairedWallet">
+          <template v-if="!!pairedWallet">
             <div>Connected to remote wallet:</div>
             <dl>
               <dt>Name</dt>
-              <dd>{{ hashconnectInfo.pairedWallet.metadata.name }}</dd>
+              <dd>{{ pairedWallet.metadata.name }}</dd>
               <dt>Description</dt>
-              <dd>{{ hashconnectInfo.pairedWallet.metadata.description }}</dd>
+              <dd>{{ pairedWallet.metadata.description }}</dd>
               <dt>Account</dt>
-              <dd>{{ hashconnectInfo.pairedWallet.accountIds.join(", ") }}</dd>
+              <dd>{{ pairedWallet.accountIds.join(", ") }}</dd>
               <dt>Network</dt>
-              <dd>{{ hashconnectInfo.pairedWallet.network }}</dd>
+              <dd>{{ pairedWallet.network }}</dd>
             </dl>
           </template>
           <template v-else>
@@ -155,16 +159,11 @@ watch(signalConnectWallet, (newValue) => {
             </button>
           </template>
         </div>
-        <button
-          v-if="
-            currentGateway === GatewayProvider.HashConnect &&
-            hashconnectInfo.pairedWallet
-          "
-          v-on:click="changeHashconnectWallet"
-        >
+        <button v-if="currentGateway === GatewayProvider.HashConnect && pairedWallet"
+          v-on:click="changeHashconnectWallet">
           Change HashConnect Wallet
         </button>
-        <button v-on:click="currentGateway = GatewayProvider.None">
+        <button v-on:click="closeHashConnect">
           Switch Wallet
         </button>
         <button v-on:click="onCancel">Close</button>
@@ -191,7 +190,7 @@ header.main {
   border-bottom: 1px solid var(--cds-nd-600);
 }
 
-header.main > button {
+header.main>button {
   padding: 0.375rem 1rem;
 }
 
@@ -244,16 +243,16 @@ header.main > button {
 }
 
 @media (max-width: 540px) {
-  header.main > button {
+  header.main>button {
     width: 2rem;
   }
 
-  header.main > button > * {
+  header.main>button>* {
     margin-left: -1rem;
     margin-right: -1rem;
   }
 
-  header.main > button > span.btn-text {
+  header.main>button>span.btn-text {
     display: none;
   }
 

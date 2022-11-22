@@ -1,11 +1,10 @@
+import { EntityIdKeyString, is_timestamp, keyString_to_timestamp, keyString_to_topicID } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
 import { Timeout } from '@nestjs/schedule';
 import { Client, ChannelCredentials } from '@grpc/grpc-js';
-import * as proto from '@hashgraph/proto';
 import { NetworkConfigurationService } from './network-configuration.service';
-import { topicIdFromString } from 'src/util/proto';
 import { HcsMessageProcessingService } from './hcs-message-processing.service';
-import { epochToTimestamp } from 'src/util/epoch';
+import { ConsensusTopicQuery, ConsensusTopicResponse } from '@bugbytes/hapi-proto';
 /**
  * Receives raw HCS messages from a mirror node for a given
  * topic and dispatches the incoming messages to the message
@@ -45,23 +44,23 @@ export class HcsMessageListenerService {
 	@Timeout(2500)
 	processHcsMessages(): void {
 		this.logger.log('Starting HCS Topic Listener');
-		const consensusStartTime = epochToTimestamp(this.network.hcsStartDate);
-		if (consensusStartTime.seconds && consensusStartTime.seconds.isPositive()) {
+		const consensusStartTime = keyString_to_timestamp(is_timestamp(this.network.hcsStartDate) ? this.network.hcsStartDate : '0.0');
+		if (consensusStartTime.seconds > 0) {
 			this.logger.log(`Skipping HCS Messages prior to ${this.network.hcsStartDate}`);
 			this.processor.setStartupTimestamp(this.network.hcsStartDate);
 		}
-		const topicQuery = proto.com.hedera.mirror.api.proto.ConsensusTopicQuery.encode({
-			topicID: topicIdFromString(this.network.hcsTopic),
-			consensusStartTime,
-			consensusEndTime: null,
-			limit: null,
-		}).finish();
+		const topicQuery = ConsensusTopicQuery.encode(
+			ConsensusTopicQuery.fromPartial({
+				topicID: keyString_to_topicID(this.network.hcsTopic as EntityIdKeyString),
+				consensusStartTime,
+			}),
+		).finish();
 		const credentials = this.network.mirrorGrpc.endsWith(':443') ? ChannelCredentials.createSsl() : ChannelCredentials.createInsecure();
 		new Client(this.network.mirrorGrpc, credentials)
 			.makeServerStreamRequest(
 				'/com.hedera.mirror.api.proto.ConsensusService/subscribeTopic',
 				(query) => Buffer.from(query),
-				proto.com.hedera.mirror.api.proto.ConsensusTopicResponse.decode,
+				ConsensusTopicResponse.decode,
 				topicQuery,
 			)
 			.on('data', this.onData.bind(this))
@@ -75,7 +74,7 @@ export class HcsMessageListenerService {
 	 *
 	 * @param hcsMessage The raw message received from the mirror node.
 	 */
-	private onData(hcsMessage: proto.com.hedera.mirror.api.proto.ConsensusTopicResponse): void {
+	private onData(hcsMessage: ConsensusTopicResponse): void {
 		this.processor.processMessage(hcsMessage);
 	}
 	/**
