@@ -1,5 +1,8 @@
 import type { KnownNetwork } from "@bugbytes/hapi-connect";
-import type { EntityIdKeyString, TimestampKeyString } from "@bugbytes/hapi-util";
+import type {
+  EntityIdKeyString,
+  TimestampKeyString,
+} from "@bugbytes/hapi-util";
 import { ref } from "vue";
 /**
  * Voting token information.
@@ -81,15 +84,15 @@ export const network = ref<NetworkInfo>({} as NetworkInfo);
  */
 export const lastUpdated = ref<string>("0.0");
 /**
-* Method that invoked to ensure the configuration is loaded.
-* Components at the root of the dom tree should call this 
-* method in mount to ensure the `network` reference is 
-* properly initialized.  At this time that is the app root
-* and the header (which the app root displays during loading)
-* If the configuation does not pass sanity checks, a rejected
-* promise is returned and `network` and `token` will be in an
-* invalid state
-*/
+ * Method that invoked to ensure the configuration is loaded.
+ * Components at the root of the dom tree should call this
+ * method in mount to ensure the `network` reference is
+ * properly initialized.  At this time that is the app root
+ * and the header (which the app root displays during loading)
+ * If the configuation does not pass sanity checks, a rejected
+ * promise is returned and `network` and `token` will be in an
+ * invalid state
+ */
 let loadTask: Promise<void>;
 export function ensureConfiguration(): Promise<void> {
   if (!loadTask) {
@@ -150,7 +153,7 @@ function guessNetwork(url: string): KnownNetwork {
           return "mainnet";
         case "https://previewnet":
           return "previewnet";
-        }
+      }
     }
   }
   return "mainnet";

@@ -8,13 +8,17 @@ import {
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 import WalletIcon from "./icons/WalletIcon.vue";
-import { pairedWallet, openHashconnectPairRequest, closeHashconnectWallet } from "@/models/hashconnect";
+import {
+  pairedWallet,
+  openHashconnectPairRequest,
+  closeHashconnectWallet,
+} from "@/models/hashconnect";
 import { ensureConfiguration } from "@/models/info";
 
 const dialog = ref<any>();
 const paringString = ref<string>();
 const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
-const configError = ref<string>('');
+const configError = ref<string>("");
 
 async function onConnectWallet() {
   dialog.value.showModal();
@@ -40,7 +44,7 @@ function selectHashConnect() {
   }
 }
 
-function changeHashconnectWallet() {  
+function changeHashconnectWallet() {
   paringString.value = openHashconnectPairRequest();
 }
 
@@ -57,11 +61,11 @@ onMounted(async () => {
   dialog.value.addEventListener("cancel", onCancel);
   try {
     await ensureConfiguration();
-    if(pairedWallet.value) {
+    if (pairedWallet.value) {
       currentGateway.value = GatewayProvider.HashConnect;
     }
   } catch (ex: any) {
-    configError.value = ex.message || 'Unknown Error';
+    configError.value = ex.message || "Unknown Error";
   }
 });
 
@@ -79,11 +83,17 @@ watch(signalConnectWallet, (newValue) => {
       <span class="btn-icon">RO</span>
       <span class="btn-text">Read Only</span>
     </button>
-    <button v-else-if="currentGateway === GatewayProvider.CopyAndPaste" v-on:click="onConnectWallet">
+    <button
+      v-else-if="currentGateway === GatewayProvider.CopyAndPaste"
+      v-on:click="onConnectWallet"
+    >
       <CopyPasteIcon />
       <span class="btn-text">Copy / Paste JSON</span>
     </button>
-    <button v-else-if="currentGateway === GatewayProvider.HashConnect" v-on:click="onConnectWallet">
+    <button
+      v-else-if="currentGateway === GatewayProvider.HashConnect"
+      v-on:click="onConnectWallet"
+    >
       <HashConnectIcon />
       <span class="btn-text">HashConnect</span>
     </button>
@@ -109,9 +119,7 @@ watch(signalConnectWallet, (newValue) => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.CopyAndPaste">
       <header>
-        <div>
-          <CopyPasteIcon /> Copy / Paste JSON
-        </div>
+        <div><CopyPasteIcon /> Copy / Paste JSON</div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -126,9 +134,7 @@ watch(signalConnectWallet, (newValue) => {
     </template>
     <template v-else-if="currentGateway === GatewayProvider.HashConnect">
       <header>
-        <div>
-          <HashConnectIcon /> HashConnect
-        </div>
+        <div><HashConnectIcon /> HashConnect</div>
         <button class="close" v-on:click="onCancel"></button>
       </header>
       <div class="dlg-content">
@@ -159,13 +165,13 @@ watch(signalConnectWallet, (newValue) => {
             </button>
           </template>
         </div>
-        <button v-if="currentGateway === GatewayProvider.HashConnect && pairedWallet"
-          v-on:click="changeHashconnectWallet">
+        <button
+          v-if="currentGateway === GatewayProvider.HashConnect && pairedWallet"
+          v-on:click="changeHashconnectWallet"
+        >
           Change HashConnect Wallet
         </button>
-        <button v-on:click="closeHashConnect">
-          Switch Wallet
-        </button>
+        <button v-on:click="closeHashConnect">Switch Wallet</button>
         <button v-on:click="onCancel">Close</button>
       </div>
     </template>
@@ -190,7 +196,7 @@ header.main {
   border-bottom: 1px solid var(--cds-nd-600);
 }
 
-header.main>button {
+header.main > button {
   padding: 0.375rem 1rem;
 }
 
@@ -243,16 +249,16 @@ header.main>button {
 }
 
 @media (max-width: 540px) {
-  header.main>button {
+  header.main > button {
     width: 2rem;
   }
 
-  header.main>button>* {
+  header.main > button > * {
     margin-left: -1rem;
     margin-right: -1rem;
   }
 
-  header.main>button>span.btn-text {
+  header.main > button > span.btn-text {
     display: none;
   }
 

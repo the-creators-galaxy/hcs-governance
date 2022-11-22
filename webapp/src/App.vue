@@ -2,16 +2,16 @@
 import { RouterView } from "vue-router";
 import MainHeader from "@/components/MainHeader.vue";
 import { onMounted, ref } from "vue";
-import { ensureConfiguration, network } from "./models/info";
+import { ensureConfiguration } from "./models/info";
 
 const loading = ref<boolean>(true);
-const configError = ref<string>('');
+const configError = ref<string>("");
 
 onMounted(async () => {
   try {
     await ensureConfiguration();
   } catch (ex: any) {
-    configError.value = ex.message || 'Unknown Error';
+    configError.value = ex.message || "Unknown Error";
     console.dir(ex);
   }
   loading.value = false;
@@ -60,7 +60,7 @@ div.startup-error {
   text-align: center;
 }
 
-div.startup-error>h1 {
+div.startup-error > h1 {
   font-size: 24px;
   font-weight: 500;
   color: var(--cds-ui-e-500);

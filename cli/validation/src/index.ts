@@ -108,11 +108,12 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             }
             let threshold = 0;
             let ineligible = createMessage.ineligible || [];
-            if(createMessage.threshold > 0.0) {
+            if (createMessage.threshold > 0.0) {
+                const circulation = parseInt(tokenInfo.total_supply, 10);
                 if (ineligible.length > 0) {
                     let ineligibleBalances = 0;
                     for (const addr of ineligible) {
-                        const balanceList = await getHcsAccountBalance(hostname, addr, ballotInfo.startVoting);
+                        const balanceList = await getHcsAccountBalance(hostname, addr, createMessage.startTimestamp);
                         if (balanceList &&
                             balanceList.balances &&
                             balanceList.balances.length === 1) {
@@ -120,7 +121,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                             if (balances &&
                                 addr === balances.account &&
                                 balances.tokens) {
-                                const tokenBalance = balances.tokens.find(b => ballotInfo.tokenId === b.token_id);
+                                const tokenBalance = balances.tokens.find(b => createMessage.tokenId === b.token_id);
                                 if (tokenBalance &&
                                     tokenBalance.balance > 0) {
                                     ineligibleBalances = ineligibleBalances + tokenBalance.balance;
@@ -128,10 +129,10 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                             }
                         }
                     }
-                    threshold = Math.round(createMessage.threshold * (tokenInfo.circulation - ineligibleBalances));
+                    threshold = Math.round(createMessage.threshold * (circulation - ineligibleBalances));
                 } else {
-                    threshold = Math.round(createMessage.threshold * tokenInfo.circulation);
-                }    
+                    threshold = Math.round(createMessage.threshold * circulation);
+                }
             }
             ballotInfo =
             {
@@ -195,15 +196,17 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             // voting balance threshold was not met.
             winner = -2;
         } else {
-            for (let i = 1; i < tally.length; i++) {
-                if (tally[i] > tally[winner]) {
+            // If more than 2 choices, assume last is Abstain
+            const list = tally.length > 2 ? tally.slice(0, tally.length - 1) : tally;
+            for (let i = 1; i < list.length; i++) {
+                if (list[i] > list[winner]) {
                     winner = i;
                 }
             }
             // Double Check for Ties
-            if (tally.filter(t => t == tally[winner]).length > 1) {
+            if (list.filter(t => t == list[winner]).length > 1) {
                 winner = -1;
-            }    
+            }
         }
     }
 

@@ -4,7 +4,9 @@ import { network, token, lastUpdated, updateLastUpdated } from "@/models/info";
 import { computed, onMounted } from "vue";
 import NavigationContainer from "../components/NavigationContainer.vue";
 
-const title = computed(() => token.value.name ? token.value.name.split(' ')[0]: 'Calaxy');
+const title = computed(() =>
+  token.value.name ? token.value.name.split(" ")[0] : "Calaxy"
+);
 
 onMounted(async () => {
   await updateLastUpdated();
@@ -13,7 +15,7 @@ onMounted(async () => {
 
 <template>
   <NavigationContainer>
-    <h2>{{title}} - ${{token.symbol}}</h2>
+    <h2>{{ title }} - ${{ token.symbol }}</h2>
     <dl>
       <dt>About</dt>
       <dd>
@@ -43,17 +45,22 @@ onMounted(async () => {
       <dt>Coordinating Topic Address</dt>
       <dd>{{ network.hcsTopic }}</dd>
       <dt>Voting Token Address</dt>
-      <dd>{{ token.id }}  ({{token.symbol}})</dd>
+      <dd>{{ token.id }} ({{ token.symbol }})</dd>
       <template v-if="network.threshold">
         <dt>Required Threshold</dt>
-        <dd>{{ network.threshold * 100 }}% of eligible voting balance (for newly created proposals)</dd>      
+        <dd>
+          {{ network.threshold * 100 }}% of eligible voting balance (for newly
+          created proposals)
+        </dd>
       </template>
       <template v-if="network.ineligible.length > 1">
         <dt>Ineligible Accounts</dt>
         <dd>
           The following accounts may not participate in voting:
           <ul>
-            <li v-for="acct in network.ineligible">{{acct}}</li>
+            <li v-for="(acct, idx) in network.ineligible" :key="idx">
+              {{ acct }}
+            </li>
           </ul>
           (for newly created proposals)
         </dd>

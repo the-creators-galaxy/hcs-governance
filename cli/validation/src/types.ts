@@ -28,7 +28,7 @@ export interface HcsTokenInfo
     created_timestamp: string;
     type: string;
     deleted: boolean;
-    circulation: number;
+    total_supply: string;
 }
 
 export interface HcsChunkInfo

@@ -82,17 +82,17 @@ const summary = computed(() => {
           </dd>
           <template v-if="proposal.threshold">
             <dt>Req&rsquo; Threshold</dt>
-            <dd>
-              {{proposal.threshold * 100}}%
-            </dd>
-          </template>          
+            <dd>{{ proposal.threshold * 100 }}%</dd>
+          </template>
           <template v-if="proposal.ineligible?.length > 0">
             <dt>Ineligible</dt>
             <dd v-if="proposal.ineligible.length < 3">
-              {{proposal.ineligible.join(', ')}}
+              {{ proposal.ineligible.join(", ") }}
             </dd>
             <dd v-else>
-              <span :title="proposal.ineligible.join('\r\n')">{{proposal.ineligible.length}} Accounts</span>
+              <span :title="proposal.ineligible.join('\r\n')"
+                >{{ proposal.ineligible.length }} Accounts</span
+              >
             </dd>
           </template>
         </dl>

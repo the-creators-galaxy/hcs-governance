@@ -5,13 +5,14 @@ import { token } from "@/models/info";
 
 const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
 
-const title = computed(() => token.value.name ? token.value.name.split(' ')[0]: 'Calaxy');
-
+const title = computed(() =>
+  token.value.name ? token.value.name.split(" ")[0] : "Calaxy"
+);
 </script>
 
 <template>
   <aside>
-    <header>{{title}} - ${{token.symbol}}</header>
+    <header>{{ title }} - ${{ token.symbol }}</header>
     <nav>
       <RouterLink to="/">Proposals</RouterLink>
       <RouterLink v-if="supportsDialog" to="/new">New Proposal</RouterLink>

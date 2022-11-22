@@ -9,8 +9,7 @@ import { token, network } from "@/models/info";
 import { submitHcsMessage } from "@/models/hashconnect";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 
-let resolveFn: ((value: boolean) => void) | null = null;
-let rejectFn: ((value: string) => void) | null = null;
+let resolveFn: (() => void) | null = null;
 
 const dialog = ref<any>();
 const payload = ref<string>();
@@ -23,13 +22,12 @@ onMounted(() => {
 
 function trySubmitCreateBallot(
   ballotParams: BallotCreateParams
-): Promise<boolean> {
+): Promise<void> {
   return new Promise((resolve, reject) => {
     if (dialog.value.open) {
       reject("Dialog is Already Open");
     } else {
       resolveFn = resolve;
-      rejectFn = reject;
       payload.value = JSON.stringify({
         type: "create-ballot",
         tokenId: token.value.id,
@@ -37,11 +35,11 @@ function trySubmitCreateBallot(
         description: trimOptionalText(ballotParams.description),
         discussion: trimOptionalText(ballotParams.discussion),
         scheme: "single-choice",
-        choices: ["Yes", "No"],
+        choices: ["Yes", "No", "Abstain"],
         startTimestamp: floorEpochFromDate(ballotParams.startDate),
         endTimestamp: ceilingEpochFromDate(ballotParams.endDate),
         threshold: network.value.threshold,
-        ineligible: network.value.ineligible
+        ineligible: network.value.ineligible,
       });
       requestSent.value = false;
       result.value = null;
@@ -53,10 +51,9 @@ function trySubmitCreateBallot(
 function onCancel() {
   if (dialog.value.open) {
     dialog.value.close();
-    if (rejectFn) {
-      rejectFn("Dialog was closed without taking action.");
+    if (resolveFn) {
+      resolveFn();
       resolveFn = null;
-      rejectFn = null;
     }
   }
 }
@@ -71,7 +68,7 @@ function onSendToHashconnect() {
   if (dialog.value.open) {
     result.value = null;
     requestSent.value = true;
-    submitHcsMessage(network.value.hcsTopic, payload.value!).then(
+    submitHcsMessage(network.value.hcsTopic, payload.value!).then( // eslint-disable-line
       (response) => {
         if (response.success) {
           result.value = {

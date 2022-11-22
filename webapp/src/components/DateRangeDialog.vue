@@ -66,8 +66,8 @@ function onOk() {
   }
   if (resolveFn) {
     resolveFn({
-      startDate: new Date(dateRange.value![0]),
-      endDate: new Date(dateRange.value![1]),
+      startDate: new Date(dateRange.value![0]), // eslint-disable-line
+      endDate: new Date(dateRange.value![1]), // eslint-disable-line
     });
     resolveFn = null;
     rejectFn = null;

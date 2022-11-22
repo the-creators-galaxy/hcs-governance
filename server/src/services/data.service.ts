@@ -219,7 +219,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 						.reduce((a, b) => a + b, 0)
 				: 0;
 		threshold = Math.round(ballot.minVotingThreshold * (circulation - ineligible));
-	}
+	}	
 	const winner = computeWinner(ballot.tally, threshold);
 	const data: string[] = [];
 	data.push(ballot.consensusTimestamp);
@@ -233,7 +233,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 	if (winner > -1) {
 		data.push(`${winner}:${ballot.choices[winner]}`);
 	} else {
-		data.push('-1');
+		data.push(`${winner}`);
 	}
 	ballot.winner = winner;
 	ballot.checksum = crypto.createHash('md5').update(data.join('|'), 'ascii').digest('hex');
@@ -255,14 +255,16 @@ function computeWinner(tally: number[], threshold: number) {
 		// voting balance threshold was not met.
 		return -2;
 	}
+	// If more than 2 choices, assume last is Abstain
 	let winner = 0;
-	for (let i = 1; i < tally.length; i++) {
-		if (tally[i] > tally[winner]) {
+	const list = tally.length > 2 ? tally.slice(0, tally.length - 1) : tally;
+	for (let i = 1; i < list.length; i++) {
+		if (list[i] > list[winner]) {
 			winner = i;
 		}
 	}
 	// Double Check for Ties
-	if (tally.filter((t) => t == tally[winner]).length > 1) {
+	if (list.filter((t) => t == list[winner]).length > 1) {
 		winner = -1;
 	}
 	return winner;
