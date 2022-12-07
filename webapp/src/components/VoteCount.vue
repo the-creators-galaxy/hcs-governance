@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import TokenBalance from "./TokenBalance.vue";
 
-interface VoteTally {
+export interface VoteTally {
   symbol: string;
   answer: string;
   decimals: number;
