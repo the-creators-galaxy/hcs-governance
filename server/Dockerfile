@@ -1,7 +1,7 @@
-FROM node:17-alpine as base
+FROM node:18-alpine as base
 WORKDIR /app
 
-FROM node:17-alpine as build
+FROM node:18-alpine as build
 WORKDIR /src
 COPY . .
 RUN npm ci

@@ -1,9 +1,5 @@
 import {
-  closeWallet,
-  getConnectedAccount,
-  initializeHashconnect,
-  openPairRequest,
-  sendTransaction,
+  HashConnectCachedClient,
   type TransactionResponse,
   type WalletMetadata,
 } from "@bugbytes/hapi-connect";
@@ -23,15 +19,15 @@ import {
 import { ref } from "vue";
 import { network } from "./info";
 
-export const pairedWallet = ref<WalletMetadata | undefined>(
-  initializeHashconnect()
-);
+const client = new HashConnectCachedClient("tcg.hcs.governance.hashconnect");
+
+export const pairedWallet = ref<WalletMetadata | undefined>(client.pairedWallet);
 
 export function openHashconnectPairRequest(): string {
-  closeWallet();
+  client.closeWallet();
   const networkName =
     network.value.network.toLowerCase() == "mainnet" ? "mainnet" : "testnet";
-  const req = openPairRequest(
+  const req = client.openPairRequest(
     "TCG Governance",
     "TCG Governance App",
     networkName
@@ -41,7 +37,7 @@ export function openHashconnectPairRequest(): string {
 }
 
 export function closeHashconnectWallet() {
-  closeWallet();
+  client.closeWallet();
   pairedWallet.value = undefined;
 }
 
@@ -59,7 +55,9 @@ export async function submitHcsMessage(
         bodyBytes: TransactionBody.encode(
           TransactionBody.fromPartial({
             transactionID: {
-              accountID: keyString_to_accountID(getConnectedAccount()),
+              accountID: keyString_to_accountID(
+                client.pairedWallet!.accountIds[0]
+              ),
               transactionValidStart: clockTimestamp(),
               scheduled: false,
               nonce: 0,
@@ -80,6 +78,6 @@ export async function submitHcsMessage(
       }).finish(),
     })
   ).finish();
-  const response = await sendTransaction(transaction, false);
+  const response = await client.sendTransaction(transaction, false);
   return response;
 }

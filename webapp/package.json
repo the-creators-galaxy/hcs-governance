@@ -1,6 +1,6 @@
 {
   "name": "governance-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -10,34 +10,34 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@bugbytes/hapi-connect": "0.31.7",
-    "@bugbytes/hapi-proto": "0.31.7",
-    "@bugbytes/hapi-util": "0.31.7",
-    "@vuepic/vue-datepicker": "^3.2.2",
-    "long": "^5.2.0",
+    "@bugbytes/hapi-connect": "0.31.9",
+    "@bugbytes/hapi-proto": "0.31.9",
+    "@bugbytes/hapi-util": "0.31.9",
+    "@vuepic/vue-datepicker": "^3.6.3",
+    "long": "^5.2.1",
     "protobufjs": "^7.1.2",
     "simple-crypto-js": "^3.0.1",
     "ts-typed-events": "^3.0.0",
-    "vue": "^3.2.29",
-    "vue-router": "^4.0.12"
+    "vue": "^3.2.45",
+    "vue-router": "^4.1.6"
   },
   "devDependencies": {
-    "@rushstack/eslint-patch": "^1.1.3",
+    "@rushstack/eslint-patch": "^1.2.0",
     "@types/jsdom": "^20.0.1",
-    "@types/node": "^18.0.0",
-    "@vitejs/plugin-vue": "^3.2.0",
+    "@types/node": "^18.11.18",
+    "@vitejs/plugin-vue": "^4.0.0",
     "@vue/eslint-config-prettier": "^7.0.0",
-    "@vue/eslint-config-typescript": "^11.0.0",
-    "@vue/test-utils": "^2.0.0",
+    "@vue/eslint-config-typescript": "^11.0.2",
+    "@vue/test-utils": "^2.2.6",
     "@vue/tsconfig": "^0.1.3",
-    "eslint": "^8.18.0",
-    "eslint-plugin-vue": "^9.1.1",
-    "jsdom": "^20.0.0",
-    "prettier": "^2.7.1",
-    "rxjs": "^7.5.7",
-    "typescript": "~4.8.4",
-    "vite": "^3.2.3",
-    "vitest": "^0.25.1",
-    "vue-tsc": "^1.0.9"
+    "eslint": "^8.30.0",
+    "eslint-plugin-vue": "^9.8.0",
+    "jsdom": "^20.0.3",
+    "prettier": "^2.8.1",
+    "rxjs": "^7.8.0",
+    "typescript": "~4.9.4",
+    "vite": "^4.0.3",
+    "vitest": "^0.26.2",
+    "vue-tsc": "^1.0.18"
   }
 }

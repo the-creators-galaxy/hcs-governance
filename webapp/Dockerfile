@@ -1,4 +1,4 @@
-FROM node:17-alpine as build
+FROM node:18-alpine as build
 ARG API_ENDPOINT
 ENV VITE_API_ROOT=$API_ENDPOINT
 WORKDIR /src
