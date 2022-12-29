@@ -1,6 +1,6 @@
 {
   "name": "governance-app",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -10,9 +10,9 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@bugbytes/hapi-connect": "0.31.9",
-    "@bugbytes/hapi-proto": "0.31.9",
-    "@bugbytes/hapi-util": "0.31.9",
+    "@bugbytes/hapi-connect": "0.31.10",
+    "@bugbytes/hapi-proto": "0.31.10",
+    "@bugbytes/hapi-util": "0.31.10",
     "@vuepic/vue-datepicker": "^3.6.3",
     "long": "^5.2.1",
     "protobufjs": "^7.1.2",

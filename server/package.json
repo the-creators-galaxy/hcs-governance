@@ -1,6 +1,6 @@
 {
   "name": "governance-api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Ballot Governance Aggregator",
   "author": "Calaxy, Inc.",
   "private": true,
@@ -21,9 +21,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@bugbytes/hapi-proto": "0.31.9",
-    "@bugbytes/hapi-mirror": "0.31.9",
-    "@bugbytes/hapi-util": "0.31.9",
+    "@bugbytes/hapi-proto": "0.31.10",
+    "@bugbytes/hapi-mirror": "0.31.10",
+    "@bugbytes/hapi-util": "0.31.10",
     "@grpc/grpc-js": "^1.8.0",
     "@nestjs/common": "^9.2.1",
     "@nestjs/config": "^2.2.0",

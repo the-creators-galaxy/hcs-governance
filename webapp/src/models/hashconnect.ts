@@ -21,7 +21,9 @@ import { network } from "./info";
 
 const client = new HashConnectCachedClient("tcg.hcs.governance.hashconnect");
 
-export const pairedWallet = ref<WalletMetadata | undefined>(client.pairedWallet);
+export const pairedWallet = ref<WalletMetadata | undefined>(
+  client.pairedWallet
+);
 
 export function openHashconnectPairRequest(): string {
   client.closeWallet();
@@ -45,6 +47,9 @@ export async function submitHcsMessage(
   topic: EntityIdKeyString,
   payload: string
 ): Promise<TransactionResponse> {
+  if (!client.pairedWallet) {
+    throw new Error("Not connected to any wallet.");
+  }
   const submitMessageBody = ConsensusSubmitMessageTransactionBody.fromPartial({
     topicID: keyString_to_topicID(topic),
     message: new TextEncoder().encode(payload),
@@ -56,7 +61,7 @@ export async function submitHcsMessage(
           TransactionBody.fromPartial({
             transactionID: {
               accountID: keyString_to_accountID(
-                client.pairedWallet!.accountIds[0]
+                client.pairedWallet.accountIds[0]
               ),
               transactionValidStart: clockTimestamp(),
               scheduled: false,
