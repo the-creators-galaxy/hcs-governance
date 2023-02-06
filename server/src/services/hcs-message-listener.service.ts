@@ -2,9 +2,9 @@ import { EntityIdKeyString, is_timestamp, keyString_to_timestamp, keyString_to_t
 import { Injectable, Logger } from '@nestjs/common';
 import { Timeout } from '@nestjs/schedule';
 import { Client, ChannelCredentials } from '@grpc/grpc-js';
-import { NetworkConfigurationService } from './network-configuration.service';
 import { HcsMessageProcessingService } from './hcs-message-processing.service';
 import { ConsensusTopicQuery, ConsensusTopicResponse } from '@bugbytes/hapi-proto';
+import { AppConfiguration } from 'src/models/app-configuration';
 /**
  * Receives raw HCS messages from a mirror node for a given
  * topic and dispatches the incoming messages to the message
@@ -27,13 +27,13 @@ export class HcsMessageListenerService {
 	/**
 	 * Public constructor, called by the NextJS runtime dependency services.
 	 *
-	 * @param network The network configuration service, providing configuration details
+	 * @param config The network configuration service, providing configuration details
 	 * such as the id of the voting token.
 	 *
 	 * @param processor The root message processing service, it makes decisions
 	 * on message validity and forwards valid messages to other services for processing.
 	 */
-	constructor(private readonly network: NetworkConfigurationService, private readonly processor: HcsMessageProcessingService) {}
+	constructor(private readonly config: AppConfiguration, private readonly processor: HcsMessageProcessingService) {}
 	/**
 	 * The root method call initiating the HCS message listening process,
 	 * the `Timeout` attribute instructs the NestJS framework to call this
@@ -44,19 +44,19 @@ export class HcsMessageListenerService {
 	@Timeout(2500)
 	processHcsMessages(): void {
 		this.logger.log('Starting HCS Topic Listener');
-		const consensusStartTime = keyString_to_timestamp(is_timestamp(this.network.hcsStartDate) ? this.network.hcsStartDate : '0.0');
+		const consensusStartTime = keyString_to_timestamp(this.config.hcsStartDate);
 		if (consensusStartTime.seconds > 0) {
-			this.logger.log(`Skipping HCS Messages prior to ${this.network.hcsStartDate}`);
-			this.processor.setStartupTimestamp(this.network.hcsStartDate);
+			this.logger.log(`Skipping HCS Messages prior to ${this.config.hcsStartDate}`);
+			this.processor.setStartupTimestamp(this.config.hcsStartDate);
 		}
 		const topicQuery = ConsensusTopicQuery.encode(
 			ConsensusTopicQuery.fromPartial({
-				topicID: keyString_to_topicID(this.network.hcsTopic as EntityIdKeyString),
+				topicID: keyString_to_topicID(this.config.hcsTopic as EntityIdKeyString),
 				consensusStartTime,
 			}),
 		).finish();
-		const credentials = this.network.mirrorGrpc.endsWith(':443') ? ChannelCredentials.createSsl() : ChannelCredentials.createInsecure();
-		new Client(this.network.mirrorGrpc, credentials)
+		const credentials = this.config.mirrorGrpc.endsWith(':443') ? ChannelCredentials.createSsl() : ChannelCredentials.createInsecure();
+		new Client(this.config.mirrorGrpc, credentials)
 			.makeServerStreamRequest(
 				'/com.hedera.mirror.api.proto.ConsensusService/subscribeTopic',
 				(query) => Buffer.from(query),

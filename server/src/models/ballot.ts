@@ -1,5 +1,4 @@
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
-
 /**
  * Stores the details of a proposal ballot (excluding individual votes cast).
  */

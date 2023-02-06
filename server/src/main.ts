@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-
 import { AppModule } from './app.module';
 
 /* Setup protobufjs to use the Long library */
