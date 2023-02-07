@@ -7,7 +7,7 @@ export default [
             format: 'esm',
         },
         plugins: [typescript()],
-        external: ['https', 'url', 'crypto']
+        external: ['https', 'url', 'node:crypto']
     },
     {
         input: './src/index.ts',
@@ -16,6 +16,6 @@ export default [
             format: 'cjs',
         },
         plugins: [typescript()],
-        external: ['https', 'url', 'crypto']
+        external: ['https', 'url', 'node:crypto']
     },
 ]

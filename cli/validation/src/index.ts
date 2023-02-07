@@ -1,7 +1,7 @@
-import { getHcsAccountBalance, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
-import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsVoteMessage, Vote } from "./types";
-import { getCurrentTime, isAddress, isTimestamp } from "./util";
-import * as crypto from "crypto";
+import { getFirstHcsMessageInTopic, getHcsAccountBalance, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
+import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsVoteMessage, RulesDefinition, Vote } from "./types";
+import { computeDiffInDays, getCurrentTime, isAddress, isAddressArrayOrUndefined, isFractionOrUndefined, isNonNegativeOrUndefined, isTimestamp } from "./util";
+import * as crypto from "node:crypto";
 
 export async function attest(hostname: string, ballotId: string): Promise<Attestation> {
     let ballotInfo: BallotInfo;
@@ -30,14 +30,14 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
 
     async function getProposalInfo() {
         try {
-            const hcsMessage = await getHcsMessageByConsensusTimestamp(hostname, ballotId);
-            const jsonMessage = Buffer.from(hcsMessage.message, 'base64');
-            const createMessage = JSON.parse(jsonMessage.toString('ascii')) as HcsCreateProposalMessage;
+            const hcsCreateMessage = await getHcsMessageByConsensusTimestamp(hostname, ballotId);
+            const jsonCreateMessage = Buffer.from(hcsCreateMessage.message, 'base64');
+            const createMessage = JSON.parse(jsonCreateMessage.toString('ascii')) as HcsCreateProposalMessage;
             if (!createMessage) {
                 throw new Error(`Invalid 'create-ballot' message.`);
             }
             if (`create-ballot` !== createMessage.type) {
-                throw new Error(`Message is not a 'create-proposal' message.`);
+                throw new Error(`Message is not a 'create-ballot' message.`);
             }
             if (!isAddress(createMessage.tokenId)) {
                 throw new Error(`Proposal definition does not identify a valid token.`);
@@ -63,6 +63,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 }
             }
             if (!isTimestamp(createMessage.startTimestamp)) {
+                console.log(createMessage.startTimestamp);
                 throw new Error(`Proposal has an Invalid Voting Start Time.`);
             }
             if (!isTimestamp(createMessage.endTimestamp)) {
@@ -71,8 +72,47 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if (createMessage.startTimestamp > createMessage.endTimestamp) {
                 throw new Error('Proposal Voting Ending Time preceeds Starting Time.');
             }
-            if (hcsMessage.consensus_timestamp > createMessage.startTimestamp) {
+            if (hcsCreateMessage.consensus_timestamp > createMessage.startTimestamp) {
                 throw new Error('Proposal Voting Starting Time preceeds Proposal Creation Time.');
+            }
+            if (!isAddressArrayOrUndefined(createMessage.ineligible)) {
+                throw new Error(`Proposal definition contains an invalid array for the ineligible list of addresses.`);
+            }
+            if (!isFractionOrUndefined(createMessage.threshold)) {
+                throw new Error(`Proposal threshold is out of valid range of [0,1].`);
+            }
+            const hcsRulesMessage = await getFirstHcsMessageInTopic(hostname, hcsCreateMessage.topic_id);
+            const jsonRulesMessage = Buffer.from(hcsRulesMessage.message, 'base64');
+            const rulesDefinition = JSON.parse(jsonRulesMessage.toString('ascii')) as RulesDefinition;
+            if (`define-rules` !== rulesDefinition.type) {
+                throw new Error(`The first message in the HCS Voting Stream ${hcsRulesMessage.topic_id} does not define the rules.`);
+            }
+            if (!isAddressArrayOrUndefined(rulesDefinition.ineligibleAccounts)) {
+                throw new Error(`The HCS Voting Stream rules contain an invalid array of ineligible addresses.`);
+            }
+            if (!isAddressArrayOrUndefined(rulesDefinition.ballotCreators)) {
+                throw new Error(`The HCS Voting Stream rules contain an invalid array of ballot creator addresses.`);
+            }
+            if (!isFractionOrUndefined(rulesDefinition.minVotingThreshold)) {
+                throw new Error(`The HCS Voting Stream rules contain an invalid value for voting threshold.`);
+            }
+            if (!isNonNegativeOrUndefined(rulesDefinition.minimumVotingPeriod)) {
+                throw new Error(`The HCS Voting Stream rules contain an invalid value for minimum voting period.`);
+            }
+            if (!isNonNegativeOrUndefined(rulesDefinition.minimumStandoffPeriod)) {
+                throw new Error(`The HCS Voting Stream rules contain an invalid value for minimum voting starting standoff period.`);
+            }
+            if (createMessage.tokenId !== rulesDefinition.tokenId) {
+                throw new Error(`Voting Token ID for ballot Ballot does not match HCS Voting stream rules.`);
+            }
+            if (rulesDefinition.ballotCreators && !rulesDefinition.ballotCreators.includes(hcsCreateMessage.payer_account_id)) {
+                throw new Error(`Ballot creator is not on the HCS Voting Stream ballot creator allowed list.`);
+            }
+            if (rulesDefinition.minimumVotingPeriod !== undefined && computeDiffInDays(createMessage.startTimestamp, createMessage.endTimestamp) < rulesDefinition.minimumVotingPeriod) {
+                throw new Error(`Ballot voting period is shorter than what is allowed in the HCS Voting Stream rules.`);
+            }
+            if (rulesDefinition.minimumStandoffPeriod !== undefined && computeDiffInDays(hcsCreateMessage.consensus_timestamp, createMessage.startTimestamp) < rulesDefinition.minimumStandoffPeriod) {
+                throw new Error(`Ballot voting period starts too soon from ballot creation than what is allowed in the HCS Voting Stream rules.`);
             }
             const currentTime = getCurrentTime();
             if (currentTime < createMessage.startTimestamp) {
@@ -81,18 +121,6 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if (currentTime < createMessage.endTimestamp) {
                 throw new Error('Voting has not completed for this proposal.');
             }
-            if (createMessage.threshold) {
-                if (createMessage.threshold < 0.0 || createMessage.threshold > 1.0) {
-                    throw new Error(`Proposal threshold is out of valid range of [0,1].`);
-                }
-            }
-            if (createMessage.ineligible && createMessage.ineligible.length > 0) {
-                for (let addr of createMessage.ineligible) {
-                    if (!isAddress(addr)) {
-                        throw new Error(`Proposal definition contains an invalid ineligible address.`);
-                    }
-                }
-            }
             const tokenInfo = await getHcsTokenInfo(hostname, createMessage.tokenId);
             if (!tokenInfo) {
                 throw new Error('Proposal Voting Token was not found.');
@@ -100,15 +128,16 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if (tokenInfo.deleted) {
                 throw new Error('Proposal Voting Token has been deleted.');
             }
-            if (hcsMessage.consensus_timestamp < tokenInfo.created_timestamp) {
+            if (hcsCreateMessage.consensus_timestamp < tokenInfo.created_timestamp) {
                 throw new Error('Proposal was created before its voting token was created.');
             }
             if ('FUNGIBLE_COMMON' !== tokenInfo.type) {
                 throw new Error('Proposal does not utilize a fungible voting token.');
             }
             let threshold = 0;
-            let ineligible = createMessage.ineligible || [];
-            if (createMessage.threshold > 0.0) {
+            let requiredThresholdFraction = createMessage.threshold || rulesDefinition.minVotingThreshold || 0;
+            let ineligible = [...new Set([...(createMessage.ineligible || []), ...(rulesDefinition.ineligibleAccounts || [])])]
+            if (requiredThresholdFraction > 0.0) {
                 const circulation = parseInt(tokenInfo.total_supply, 10);
                 if (ineligible.length > 0) {
                     let ineligibleBalances = 0;
@@ -129,16 +158,16 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                             }
                         }
                     }
-                    threshold = Math.round(createMessage.threshold * (circulation - ineligibleBalances));
+                    threshold = Math.round(requiredThresholdFraction * (circulation - ineligibleBalances));
                 } else {
-                    threshold = Math.round(createMessage.threshold * circulation);
+                    threshold = Math.round(requiredThresholdFraction * circulation);
                 }
             }
             ballotInfo =
             {
                 ballotId,
                 tokenId: createMessage.tokenId,
-                topicId: hcsMessage.topic_id,
+                topicId: hcsCreateMessage.topic_id,
                 choices: createMessage.choices,
                 startVoting: createMessage.startTimestamp,
                 endVoting: createMessage.endTimestamp,
