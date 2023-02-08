@@ -114,6 +114,9 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             if (rulesDefinition.minimumStandoffPeriod !== undefined && computeDiffInDays(hcsCreateMessage.consensus_timestamp, createMessage.startTimestamp) < rulesDefinition.minimumStandoffPeriod) {
                 throw new Error(`Ballot voting period starts too soon from ballot creation than what is allowed in the HCS Voting Stream rules.`);
             }
+            if (rulesDefinition.minVotingThreshold !== undefined && createMessage.threshold !== undefined && createMessage.threshold < rulesDefinition.minVotingThreshold) {
+                throw new Error(`Ballot required voting threshold is smaller than what is allowed in the HCS Voting Stream rules.`);
+            }
             const currentTime = getCurrentTime();
             if (currentTime < createMessage.startTimestamp) {
                 throw new Error('Voting has not started for this proposal.');
