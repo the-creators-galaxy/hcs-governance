@@ -39,11 +39,15 @@ export function ceilingEpochFromDate(
  * @returns epoch date string rolled back to UTC midnight for the
  * original date.
  */
-export function floorEpochFromDate(date: Date | undefined): string | undefined {
+export function floorOrStandoffEpochFromDate(date: Date | undefined, standoff: number): string | undefined {
+  const earliest = new Date();
+  earliest.setTime(earliest.getTime() + 300000 + standoff * 86400000);  
   if (date) {
     const floor = new Date(date);
     floor.setUTCHours(0, 0, 0, 0);
-    return date_to_keyString(floor);
+    if(earliest.getTime() < floor.getTime()) {
+      return date_to_keyString(floor);
+    }
   }
-  return undefined;
+  return date_to_keyString(earliest);;
 }

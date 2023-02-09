@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import EpochDateDisplay from "@/components/EpochDateDisplay.vue";
 import { network, token, lastUpdated, updateLastUpdated } from "@/models/info";
-import { computed, onMounted } from "vue";
+import { onMounted } from "vue";
 import NavigationContainer from "../components/NavigationContainer.vue";
-
-const title = computed(() =>
-  token.value.name ? token.value.name.split(" ")[0] : "Calaxy"
-);
 
 onMounted(async () => {
   await updateLastUpdated();
@@ -15,14 +11,10 @@ onMounted(async () => {
 
 <template>
   <NavigationContainer>
-    <h2>{{ title }} - ${{ token.symbol }}</h2>
+    <h2>{{ network.title }} - ${{ token.symbol }}</h2>
     <dl>
-      <dt>About</dt>
-      <dd>
-        The Creator&rsquo;s Galaxy is a protocol &amp; decentralized ecosystem
-        dedicated to empowering content creators and the future of personal
-        monetization.
-      </dd>
+      <dt>Description</dt>
+      <dd>{{ network.description }}</dd>
       <dt>Latest Valid Message</dt>
       <dd>
         <EpochDateDisplay :value="lastUpdated"></EpochDateDisplay>
@@ -41,7 +33,7 @@ onMounted(async () => {
       <dd>{{ network.network }}</dd>
       <dt>Source Mirror Node</dt>
       <dd>Grpc: {{ network.mirrorGrpc }}</dd>
-      <dd>Rest: {{ network.mirrorRest }}</dd>
+      <dd>Rest: <a v-bind:href="network.mirrorRest + '/api/v1/docs'" target="_blank">{{ network.mirrorRest }}</a></dd>
       <dt>Coordinating Topic Address</dt>
       <dd>{{ network.hcsTopic }}</dd>
       <dt>Voting Token Address</dt>
@@ -53,6 +45,17 @@ onMounted(async () => {
           created proposals)
         </dd>
       </template>
+      <template v-if="network.creators.length > 1">
+        <dt>Proposal Creators</dt>
+        <dd>
+          The following accounts are allowed to create ballot proposals:
+          <ul>
+            <li v-for="(acct, idx) in network.creators" :key="idx">
+              {{ acct }}
+            </li>
+          </ul>
+        </dd>
+      </template>
       <template v-if="network.ineligible.length > 1">
         <dt>Ineligible Accounts</dt>
         <dd>
@@ -62,8 +65,13 @@ onMounted(async () => {
               {{ acct }}
             </li>
           </ul>
-          (for newly created proposals)
         </dd>
+      </template>
+      <template v-if="network.minVotingThreshold > 0 || network.minimumStandoffPeriod > 0 || network.minimumVotingPeriod > 0">
+        <dt>Required Thresholds</dt>
+        <dd v-if="network.minVotingThreshold > 0">Required Quorum Threshold: {{ network.minVotingThreshold.valueOf() }}</dd>
+        <dd v-if="network.minimumStandoffPeriod > 0">Minimum Voting Standoff: {{ network.minimumStandoffPeriod }} {{ network.minimumStandoffPeriod > 1 ? 'days' : 'day' }}</dd>
+        <dd v-if="network.minimumVotingPeriod > 0">Minimum Voting Window: {{ network.minimumVotingPeriod }} {{network.minimumVotingPeriod > 1 ? 'days' : 'day'}}</dd>        
       </template>
       <dt>Versions</dt>
       <dd>User Inteface: {{ network.uiVersion }}</dd>
@@ -108,6 +116,15 @@ h2 {
   color: var(--cds-nl-0);
   margin: 0;
   padding: 0 0 1.5rem 0;
+}
+
+a {
+  color: var(--cds-cs-500);
+  text-decoration: none;
+}
+
+a:hover {  
+  text-decoration: underline;
 }
 
 @media (max-width: 800px) {

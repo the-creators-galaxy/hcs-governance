@@ -1,9 +1,11 @@
 import type { KnownNetwork } from "@bugbytes/hapi-connect";
-import type {
-  EntityIdKeyString,
-  TimestampKeyString,
+import {
+  is_entity_id,
+  type EntityIdKeyString,
+  type TimestampKeyString,
 } from "@bugbytes/hapi-util";
 import { ref } from "vue";
+
 /**
  * Voting token information.
  */
@@ -48,20 +50,44 @@ export interface NetworkInfo {
    */
   hcsTopic: EntityIdKeyString;
   /**
+   * A Brief title describing this voting stream.
+   */
+  title: string;
+  /**
+   * A brief description of this voting stream.
+   */
+  description: string;
+  /**
    * If configured, the startup date & time filter for processing messages.
    */
   hcsStartDate: TimestampKeyString;
   /**
-   * If configured, the minimum fraction of balance that must participate
-   * in a ballot vote for it to be considered valid.  This value should be
-   * respected when creating new ballot definitions.
+   * If configured, a list of accounts that may submit ballot proposals.
+   * If not empty, any ballot created by a payer not on this list will
+   * be rejected by the validation rules.
    */
-  threshold: number;
+  creators: EntityIdKeyString[];
   /**
    * If configured, a list of accounts that should not participate in ballot
    * votes.  This value should be respected when creating new ballot definitions.
    */
   ineligible: EntityIdKeyString[];
+  /**
+   * The minimum voting threshold quorum required for a ballot vote tally to 
+   * be considered conclusive.
+   */
+  minVotingThreshold: number;
+  /**
+   * The minimum amount of time (in days) that is required to wait between 
+   * creating a ballot and the beginning of voting on that ballot.  Ballots created
+   * violating this limit will be rejected as invalid by the validation software.
+   */
+  minimumStandoffPeriod: number;
+  /**
+   * The minimum amount of time (in days) that a voting window must remain open.
+   * Ballots created violating this limit will be rejected by the validation software.
+   */
+  minimumVotingPeriod: number;
   /**
    * The web software user interface version.
    */
@@ -105,15 +131,34 @@ export function ensureConfiguration(): Promise<void> {
  */
 export async function refreshInfo(): Promise<void> {
   const json = await fetchRemoteInfo();
-  token.value = json.htsToken;
+  if(!json.hcsToken) {
+    throw new Error('HCS Voting Token information is missing from server info.');
+  }
+  if(!is_entity_id(json.hcsTopic)) {
+    throw new Error('Server returned an invalid id for the HCS Voting Topic.');
+  }
+  if(!is_entity_id(json.hcsToken.id)) {
+    throw new Error('Server returned an invalid id for the HCS Voting Token.');
+  }
+  token.value = {
+    id: json.hcsToken.id,
+    symbol: json.hcsToken.symbol || json.hcsToken.id,
+    name: json.hcsToken.name || json.hcsToken.id,
+    decimals: json.hcsToken.decimals || 0
+  }
   network.value = {
+    title: json.title || token.value.symbol,
+    description: json.description || token.value.name,
     network: guessNetwork(json.mirrorRest),
     mirrorGrpc: json.mirrorGrpc,
     mirrorRest: json.mirrorRest,
     hcsTopic: json.hcsTopic,
-    hcsStartDate: json.hcsStartDate,
-    threshold: json.threshold ? parseFloat(json.threshold) : 0,
-    ineligible: json.ineligible || [],
+    hcsStartDate: json.hcsStartDate,    
+    ineligible: json.ineligibleAccounts || [],
+    creators: json.ballotCreators || [],
+    minVotingThreshold: json.minVotingThreshold || 0,
+    minimumStandoffPeriod: json.minimumStandoffPeriod || 0,
+    minimumVotingPeriod: json.minimumVotingPeriod || 0,
     uiVersion: __APP_VERSION__,
     apiVersion: json.version,
   };
@@ -131,9 +176,16 @@ export async function updateLastUpdated(): Promise<void> {
  * Internal helper function to retrieve remote information from the api server.
  */
 async function fetchRemoteInfo(): Promise<any> {
-  const url = `${import.meta.env.VITE_API_ROOT}/api/v1/info`;
-  const response = await fetch(url);
-  return await response.json();
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_ROOT}/api/v1/info`);
+    if (!response.ok) {
+      throw `server returned ${response.statusText}`;
+    }
+    return await response.json();
+  } catch (ex) {
+    const msg = ex instanceof Error ? ex.message : String(ex);
+    throw new Error(`Failed to retrieve voting stream info from ${import.meta.env.VITE_API_ROOT}: ${msg}`);
+  }
 }
 /**
  * Helper function that attempts to produce a human readable name for

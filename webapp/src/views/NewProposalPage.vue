@@ -11,7 +11,7 @@ import ProposalDetailView from "@/components/ProposalDetailView.vue";
 import type { BallotCreateParams } from "@/models/gateway";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
-import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
+import { ceilingEpochFromDate, floorOrStandoffEpochFromDate } from "@/models/epoch";
 import { trimOptionalText } from "@/models/text";
 import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
@@ -60,9 +60,9 @@ function showPreview() {
     choices: ["Yes", "No", "Abstain"],
     expires: 7,
     status: ProposalStatus.Voting,
-    startTimestamp: floorEpochFromDate(ballot.value.startDate) || "",
+    startTimestamp: floorOrStandoffEpochFromDate(ballot.value.startDate, network.value.minimumStandoffPeriod) || "",
     endTimestamp: ceilingEpochFromDate(ballot.value.endDate) || "",
-    threshold: network.value.threshold,
+    threshold: network.value.minVotingThreshold,
     ineligible: network.value.ineligible,
     tally: [],
     votes: [],
@@ -107,22 +107,13 @@ function tryPublish() {
       <div class="edit-container">
         <div class="left-side">
           <BackLink />
-          <input
-            placeholder="Proposal Title (required)"
-            :class="{ title: true, invalid: validationErrors.title }"
-            v-model="ballot.title"
-          />
+          <input placeholder="Proposal Title (required)" :class="{ title: true, invalid: validationErrors.title }"
+            v-model="ballot.title" />
           <div v-if="validationErrors.title" class="invalid-desc">
             Title is Required.
           </div>
-          <input
-            placeholder="Description (optional https/ipfs link or brief text)"
-            v-model="ballot.description"
-          />
-          <input
-            placeholder="Discussion (optional https/ipfs link or brief text)"
-            v-model="ballot.discussion"
-          />
+          <input placeholder="Description (optional https/ipfs link or brief text)" v-model="ballot.description" />
+          <input placeholder="Discussion (optional https/ipfs link or brief text)" v-model="ballot.discussion" />
           <ButtonPanel>
             <template #header>Choices</template>
             <button disabled>Single choice voting</button>
@@ -188,7 +179,7 @@ function tryPublish() {
   overflow: hidden;
 }
 
-.left-side > div.panel {
+.left-side>div.panel {
   margin-bottom: 1.5rem;
 }
 
@@ -221,7 +212,7 @@ function tryPublish() {
   column-gap: 1rem;
 }
 
-.calendar-buttons > button {
+.calendar-buttons>button {
   padding: 1rem 13.5px;
   text-align: left;
   display: grid;
@@ -276,9 +267,10 @@ function tryPublish() {
 }
 
 @media (max-width: 375px) {
+
   .preview-back,
-  .left-side > a,
-  .left-side > input {
+  .left-side>a,
+  .left-side>input {
     margin-left: 1.25rem;
     margin-right: 1.25rem;
   }

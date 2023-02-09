@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { token } from "@/models/info";
+import { token, network } from "@/models/info";
 
 const supportsDialog = ref<boolean>(typeof HTMLDialogElement === "function");
 
-const title = computed(() =>
-  token.value.name ? token.value.name.split(" ")[0] : "Calaxy"
-);
 </script>
 
 <template>
   <aside>
-    <header>{{ title }} - ${{ token.symbol }}</header>
+    <header>{{ network.title }} ⸱ ${{ token.symbol }}</header>
     <nav>
       <RouterLink to="/">Proposals</RouterLink>
       <RouterLink v-if="supportsDialog" to="/new">New Proposal</RouterLink>

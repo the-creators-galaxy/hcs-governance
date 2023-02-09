@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import Datepicker from "@vuepic/vue-datepicker";
+import { network } from "@/models/info";
 
 type DialogResult = {
   startDate: Date;
@@ -9,9 +10,7 @@ type DialogResult = {
 let resolveFn: ((value: DialogResult) => void) | null = null;
 let rejectFn: ((value: string) => void) | null = null;
 
-const nextWeek = new Date();
-nextWeek.setDate(nextWeek.getDate() + 6);
-const minStartingDate = ref(nextWeek);
+const minStartingDate = ref(new Date());
 const dateRange = ref<Date[]>();
 const dialog = ref<any>();
 const isInvalid = computed(() => {
@@ -30,6 +29,9 @@ function promptForDateRange(
   startDate: Date | undefined,
   endDate: Date | undefined
 ): Promise<DialogResult> {
+  const starting = new Date();
+  starting.setTime(starting.getTime() + 300000 + network.value.minimumStandoffPeriod * 86400000);
+  minStartingDate.value = starting;
   return new Promise((resolve, reject) => {
     if (dialog.value.open) {
       reject("Dialog is Already Open");
@@ -86,18 +88,8 @@ defineExpose({
       <button class="close" v-on:click="onCancel"></button>
     </header>
     <div class="dlg-content">
-      <Datepicker
-        v-model="dateRange"
-        :inline="true"
-        :range="true"
-        :utc="true"
-        :minRange="5"
-        :maxRange="90"
-        :minDate="minStartingDate"
-        :enableTimePicker="false"
-        :dark="true"
-        :autoApply="true"
-      />
+      <Datepicker v-model="dateRange" :inline="true" :range="true" :utc="true" :minRange="network.minimumVotingPeriod"
+        :maxRange="90" :minDate="minStartingDate" :enableTimePicker="false" :dark="true" :autoApply="true" />
     </div>
     <footer>
       <button v-on:click="onCancel">Cancel</button>
@@ -110,6 +102,7 @@ defineExpose({
 .dlg-content {
   padding: 1.25rem 5.25rem;
 }
+
 @media (max-width: 540px) {
   .dlg-content {
     padding: 1.25rem 0;
