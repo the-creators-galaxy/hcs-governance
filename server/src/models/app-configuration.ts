@@ -145,7 +145,11 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 		logger.log(`Description: ${description}`);
 		logger.log(`HCS Topic: ${hcsTopic}`);
 		logger.log(`Voting Token: ${hcsToken.id}`);
-		logger.log(`Messages Starting on: ${hcsStartDate}`);
+		if(hcsStartDate !== "0.0") {
+			logger.log(`Starting Timestamp: ${hcsStartDate}`);
+		} else {
+			logger.log('Starting Timestamp: none, replay entier stream');
+		}
 		logger.log(`Ballot Creators: ${ballotCreators.length > 0 ? ballotCreators : 'any account may submit a proposal'}`);
 		logger.log(`Ineligible Accounts: ${ineligibleAccounts.length > 0 ? ineligibleAccounts : 'none, all accounts may vote'}`);
 		logger.log(`Minimum Voting Threshold: ${minVotingThreshold > 0 ? minVotingThreshold.toString() : 'no quoroum required'}`);
@@ -173,7 +177,7 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 		 * To be valid, the rules definition must be placed as the first message in
 		 * the stream and must conform to the `RulesDefinition` schema.
 		 */
-		async function getRules(): Promise<RulesDefinition & { timestamp: TimestampKeyString }> {
+		async function getRules(): Promise<RulesDefinition> {
 			logger.log(`Retrieving rules configuration for hcs stream ${hcsTopic}.`);
 			const firstMessage = await getFirstMessage();
 			if (!firstMessage.message) {
@@ -183,7 +187,7 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 			if (rules.type !== 'define-rules') {
 				throw new Error('First message in topic does not appear to define the voting rules.');
 			}
-			return { ...rules, timestamp: firstMessage.consensus_timestamp as TimestampKeyString };
+			return rules;
 			/**
 			 * Attempts to retrieve the first message in an HCS
 			 * message stream, if it exists.
@@ -251,9 +255,6 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 		 * the computed starting filter time.
 		 */
 		function computeStartDateFilter(): TimestampKeyString {
-			const timestamp = keyString_to_timestamp(rules.timestamp);
-			timestamp.nanos = timestamp.nanos + 1;
-			const startDate = timestamp_to_keyString(timestamp);
 			const override = configService.get<string>('HCS_START_DATE');
 			if (override) {
 				if (!is_timestamp(override)) {
@@ -262,11 +263,9 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 				if (override > date_to_keyString(new Date())) {
 					throw new Error('Invalid HCS Starting Date, value can not be in the future.');
 				}
-				if (override > startDate) {
-					return override;
-				}
+				return override;
 			}
-			return startDate;
+			return "0.0";
 		}
 		/**
 		 * Helper function that examines a list of addresses to ensure
