@@ -1,12 +1,4 @@
-import {
-	date_to_keyString,
-	EntityIdKeyString,
-	is_entity_id,
-	is_timestamp,
-	keyString_to_timestamp,
-	TimestampKeyString,
-	timestamp_to_keyString,
-} from '@bugbytes/hapi-util';
+import { date_to_keyString, EntityIdKeyString, is_entity_id, is_timestamp, TimestampKeyString } from '@bugbytes/hapi-util';
 import { MirrorError, MirrorRestClient } from '@bugbytes/hapi-mirror';
 import { ConfigService } from '@nestjs/config';
 import { TokenSummary } from './token-summary';
@@ -110,7 +102,7 @@ export class AppConfiguration {
  *
  * @param configService The nestjs configuration service providing access
  * to the proper environmental variables.
- * 
+ *
  * @returns the application configuration.
  */
 export async function loadAppConfiguration(configService: ConfigService): Promise<AppConfiguration> {
@@ -145,7 +137,7 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 		logger.log(`Description: ${description}`);
 		logger.log(`HCS Topic: ${hcsTopic}`);
 		logger.log(`Voting Token: ${hcsToken.id}`);
-		if(hcsStartDate !== "0.0") {
+		if (hcsStartDate !== '0.0') {
 			logger.log(`Starting Timestamp: ${hcsStartDate}`);
 		} else {
 			logger.log('Starting Timestamp: none, replay entier stream');
@@ -265,7 +257,7 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 				}
 				return override;
 			}
-			return "0.0";
+			return '0.0';
 		}
 		/**
 		 * Helper function that examines a list of addresses to ensure

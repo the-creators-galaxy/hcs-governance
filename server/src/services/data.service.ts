@@ -218,7 +218,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 						.map((b) => b.balance)
 						.reduce((a, b) => a + b, 0)
 				: 0;
-		threshold = Math.round(ballot.minVotingThreshold * (circulation - ineligible));
+		threshold = Math.ceil(ballot.minVotingThreshold * (circulation - ineligible));
 	}
 	const winner = computeWinner(ballot.tally, threshold);
 	const data: string[] = [];

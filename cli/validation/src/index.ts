@@ -161,9 +161,9 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                             }
                         }
                     }
-                    threshold = Math.round(requiredThresholdFraction * (circulation - ineligibleBalances));
+                    threshold = Math.ceil(requiredThresholdFraction * (circulation - ineligibleBalances));
                 } else {
-                    threshold = Math.round(requiredThresholdFraction * circulation);
+                    threshold = Math.ceil(requiredThresholdFraction * circulation);
                 }
             }
             ballotInfo =

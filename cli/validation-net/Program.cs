@@ -238,11 +238,11 @@ async Task GetProposalInfo()
                         }
                     }
                 }
-                threshold = (ulong)Math.Round(requiredThresholdFraction * (circulation - ineligibleBalances));
+                threshold = (ulong)Math.Ceiling(requiredThresholdFraction * (circulation - ineligibleBalances));
             }
             else
             {
-                threshold = (ulong)Math.Round(requiredThresholdFraction * circulation);
+                threshold = (ulong)Math.Ceiling(requiredThresholdFraction * circulation);
             }
         }
         proposalInfo = new ProposalInfo
