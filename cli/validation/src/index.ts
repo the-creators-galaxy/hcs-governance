@@ -1,5 +1,5 @@
 import { getFirstHcsMessageInTopic, getHcsAccountBalance, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
-import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsVoteMessage, RulesDefinition, Vote } from "./types";
+import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsMessage, HcsVoteMessage, RulesDefinition, Vote } from "./types";
 import { computeDiffInDays, getCurrentTime, isAddress, isAddressArrayOrUndefined, isFractionOrUndefined, isNonNegativeOrUndefined, isTimestamp } from "./util";
 import * as crypto from "node:crypto";
 
@@ -182,10 +182,10 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             throw new Error(`Invalid Proposal with ID ${ballotId}: ${err}`);
         }
     }
+
     async function gatherVotes() {
         for await (const hcsMessage of getValidHcsMessagesInRange(hostname, ballotInfo.topicId, ballotInfo.startVoting, ballotInfo.endVoting)) {
-            const jsonMessage = Buffer.from(hcsMessage.message, 'base64');
-            const voteMessage = JSON.parse(jsonMessage.toString('ascii')) as HcsVoteMessage;
+            const voteMessage = parseVoteHcsMessage(hcsMessage);
             if (voteMessage &&
                 'cast-vote' === voteMessage.type &&
                 ballotId === voteMessage.ballotId &&
@@ -215,6 +215,16 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 }
             }
         }
+    }
+
+    function parseVoteHcsMessage(hcsMessage: HcsMessage): HcsVoteMessage | null {
+        try {
+            const jsonMessage = Buffer.from(hcsMessage.message, 'base64');
+            return JSON.parse(jsonMessage.toString('ascii')) as HcsVoteMessage;
+        } catch (error) {
+            // invalid message
+        }
+        return null;
     }
 
     function tallyVotes() {

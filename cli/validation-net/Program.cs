@@ -267,8 +267,7 @@ async Task GatherVotes()
 {
     await foreach (var hcsMessage in GetValidHcsMessagesInRange(proposalInfo.TopicId, proposalInfo.StartVoting, proposalInfo.EndVoting))
     {
-        var jsonMessage = Convert.FromBase64String(hcsMessage.Message);
-        var voteMessage = JsonSerializer.Deserialize<HcsVoteMessage>(jsonMessage);
+        var voteMessage = ParseVoteHcsMessage(hcsMessage);
         if (voteMessage is not null &&
             "cast-vote".Equals(voteMessage.MessageType) &&
             proposalId.Equals(voteMessage.ProposalId) &&
@@ -304,6 +303,20 @@ async Task GatherVotes()
             }
         }
     }
+}
+
+HcsVoteMessage ParseVoteHcsMessage(HcsMessage hcsMessage)
+{
+    try
+    {
+        var jsonMessage = Convert.FromBase64String(hcsMessage.Message);
+        return JsonSerializer.Deserialize<HcsVoteMessage>(jsonMessage);
+    }
+    catch (JsonException)
+    {
+        // Not a valid message.
+    }
+    return null;
 }
 
 void TallyVotes()
