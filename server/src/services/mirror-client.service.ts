@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NetworkConfigurationService } from './network-configuration.service';
 import { MessageInfo, MirrorError, MirrorRestClient, TokenBalanceInfo } from '@bugbytes/hapi-mirror';
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 import { TokenSummary } from 'src/models/token-summary';
+import { AppConfiguration } from 'src/models/app-configuration';
 /**
  * Provides various methods for retrieving information from a remote
  * Hedera Mirror Node REST API.
@@ -20,11 +20,11 @@ export class MirrorClientService {
 	/**
 	 * Public constructor, called by the NextJS runtime dependency injection services.
 	 *
-	 * @param network The network configuration service, providing configuration details
+	 * @param config The application's configuration containing details
 	 * such as the id of the voting token.
 	 */
-	constructor(private readonly network: NetworkConfigurationService) {
-		this.client = new MirrorRestClient(this.network.mirrorRest);
+	constructor(private readonly config: AppConfiguration) {
+		this.client = new MirrorRestClient(this.config.mirrorRest);
 	}
 	/**
 	 * Retrieves the token information for the token identified in the
@@ -34,7 +34,7 @@ export class MirrorClientService {
 	 * used in processing.  If not found, an error is raised.
 	 */
 	async getHcsTokenSummary(timestamp: TimestampKeyString | undefined = undefined): Promise<TokenSummary> {
-		const record = await this.client.getTokenInfo(this.network.hcsToken as unknown as EntityIdKeyString, timestamp);
+		const record = await this.client.getTokenInfo(this.config.hcsToken.id, timestamp);
 		return {
 			id: record.token_id as unknown as EntityIdKeyString,
 			symbol: record.symbol,
@@ -61,16 +61,14 @@ export class MirrorClientService {
 		let count = 0;
 		while (true) {
 			try {
-				return await this.client.getMessage(this.network.hcsTopic as unknown as EntityIdKeyString, sequenceNumber);
+				return await this.client.getMessage(this.config.hcsTopic as unknown as EntityIdKeyString, sequenceNumber);
 			} catch (ex) {
 				count++;
 				if (ex instanceof MirrorError && ex.status === 404 && count < 30) {
-					this.logger.verbose(`HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic} is not yet available, will Retry.`);
+					this.logger.verbose(`HCS Message no. ${sequenceNumber} for topic ${this.config.hcsTopic} is not yet available, will Retry.`);
 					await new Promise((resolve) => setTimeout(resolve, 7000));
 				} else {
-					this.logger.error(
-						`Error fetching HCS Message no. ${sequenceNumber} for topic ${this.network.hcsTopic}, failed with code: ${ex.status || ex.message}`,
-					);
+					this.logger.error(`Error fetching HCS Message no. ${sequenceNumber} for topic ${this.config.hcsTopic}, failed with code: ${ex.status || ex.message}`);
 					throw ex;
 				}
 			}
@@ -115,6 +113,6 @@ export class MirrorClientService {
 	 * topic, in Hedera Epoch string form (0000.0000).
 	 */
 	async getLatestMessageTimestamp(): Promise<TimestampKeyString> {
-		return (await this.client.getLatestMessage(this.network.hcsTopic as unknown as EntityIdKeyString)).consensus_timestamp as unknown as TimestampKeyString;
+		return (await this.client.getLatestMessage(this.config.hcsTopic as unknown as EntityIdKeyString)).consensus_timestamp as unknown as TimestampKeyString;
 	}
 }

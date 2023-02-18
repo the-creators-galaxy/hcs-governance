@@ -1,5 +1,4 @@
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
-
 /**
  * Stores the details of a single proposal vote by a token holder.
  */

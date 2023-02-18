@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-DateTime EPOCH = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 long NanosPerTick = 1_000_000_000L / TimeSpan.TicksPerSecond;
 HttpClient client = new HttpClient();
 string mirrorNodeUrl = null;
@@ -62,9 +61,9 @@ async Task GetProposalInfo()
 {
     try
     {
-        var hcsMessage = await GetHcsMessageByConsensusTimestamp(proposalId);
-        var jsonMessage = Convert.FromBase64String(hcsMessage.Message);
-        var createMessage = JsonSerializer.Deserialize<HcsCreateProposalMessage>(jsonMessage);
+        var hcsCreateMessage = await GetHcsMessageByConsensusTimestamp(proposalId);
+        var jsonCreateMessage = Convert.FromBase64String(hcsCreateMessage.Message);
+        var createMessage = JsonSerializer.Deserialize<HcsCreateProposalMessage>(jsonCreateMessage);
         if (createMessage is null)
         {
             throw new Exception("Invalid 'create-ballot' message.");
@@ -116,9 +115,68 @@ async Task GetProposalInfo()
         {
             throw new Exception("Proposal Voting Ending Time preceeds Starting Time.");
         }
-        if (hcsMessage.ConsensusTimestamp.CompareTo(createMessage.StartTimestamp) >= 0)
+        if (hcsCreateMessage.ConsensusTimestamp.CompareTo(createMessage.StartTimestamp) >= 0)
         {
             throw new Exception("Proposal Voting Starting Time preceeds Proposal Creation Time.");
+        }
+        if (!IsAddressArrayOrUndefined(createMessage.IneligibleAccounts))
+        {
+            throw new Exception("Proposal definition contains an invalid array for the ineligible list of addresses.");
+        }
+        if (!IsFractionOrUndefined(createMessage.RequiredThreshold))
+        {
+            throw new Exception("Proposal threshold is out of valid range of [0,1].");
+        }
+        var hcsRulesMessage = await GetFirstHcsMessageInTopic(hcsCreateMessage.TopicId);
+        var jsonRulesMessage = Convert.FromBase64String(hcsRulesMessage.Message);
+        var rulesDefinition = JsonSerializer.Deserialize<HcsRulesMessage>(jsonRulesMessage);
+        if (rulesDefinition is null)
+        {
+            throw new Exception($"The first message in the HCS Voting Stream ${hcsRulesMessage.TopicId} does not define the rules.");
+        }
+        if (!"define-rules".Equals(rulesDefinition.MessageType))
+        {
+            throw new Exception($"The first message in the HCS Voting Stream ${hcsRulesMessage.TopicId} does not define the rules.");
+        }
+        if (!IsAddressArrayOrUndefined(rulesDefinition.IneligibleAccounts))
+        {
+            throw new Exception("The HCS Voting Stream rules contain an invalid array of ineligible addresses.");
+        }
+        if (!IsAddressArrayOrUndefined(rulesDefinition.BallotCreators))
+        {
+            throw new Exception("The HCS Voting Stream rules contain an invalid array of ballot creator addresses.");
+        }
+        if (!IsFractionOrUndefined(rulesDefinition.MinimumRequiredVotingThreshold))
+        {
+            throw new Exception("The HCS Voting Stream rules contain an invalid value for voting threshold.");
+        }
+        if (!IsNonNegativeOrUndefined(rulesDefinition.MinimumVotingPeriod))
+        {
+            throw new Exception("The HCS Voting Stream rules contain an invalid value for minimum voting period.");
+        }
+        if (!IsNonNegativeOrUndefined(rulesDefinition.MinimumStandoffPeriod))
+        {
+            throw new Exception("The HCS Voting Stream rules contain an invalid value for minimum voting starting standoff period.");
+        }
+        if (createMessage.TokenId != rulesDefinition.TokenId)
+        {
+            throw new Exception("Voting Token ID for ballot Ballot does not match HCS Voting stream rules.");
+        }
+        if (rulesDefinition.BallotCreators?.Length > 0 && !rulesDefinition.BallotCreators.Contains(hcsCreateMessage.PayerId))
+        {
+            throw new Exception("Ballot creator is not on the HCS Voting Stream ballot creator allowed list.");
+        }
+        if (rulesDefinition.MinimumVotingPeriod.GetValueOrDefault() > 0 && ComputeDiffInDays(createMessage.StartTimestamp, createMessage.EndTimestamp) < rulesDefinition.MinimumVotingPeriod.Value)
+        {
+            throw new Exception("Ballot voting period is shorter than what is allowed in the HCS Voting Stream rules.");
+        }
+        if (rulesDefinition.MinimumStandoffPeriod.GetValueOrDefault() > 0 && ComputeDiffInDays(hcsCreateMessage.ConsensusTimestamp, createMessage.StartTimestamp) < rulesDefinition.MinimumStandoffPeriod.Value)
+        {
+            throw new Exception("Ballot voting period starts too soon from ballot creation than what is allowed in the HCS Voting Stream rules.");
+        }
+        if (rulesDefinition.MinimumRequiredVotingThreshold.HasValue && createMessage.RequiredThreshold.HasValue && createMessage.RequiredThreshold.Value < rulesDefinition.MinimumRequiredVotingThreshold.Value)
+        {
+            throw new Exception("Ballot required voting threshold is smaller than what is allowed in the HCS Voting Stream rules.");
         }
         var currentTime = CurrentTime();
         if (currentTime.CompareTo(createMessage.StartTimestamp) < 0)
@@ -129,23 +187,6 @@ async Task GetProposalInfo()
         {
             throw new Exception("Voting has not completed for this proposal.");
         }
-        if (createMessage.RequiredThreshold.HasValue)
-        {
-            if (createMessage.RequiredThreshold.Value < 0.0 || createMessage.RequiredThreshold.Value > 1.0)
-            {
-                throw new Exception("Proposal threshold is out of valid range of [0,1].");
-            }
-        }
-        if (createMessage.IneligibleAcocunts is not null && createMessage.IneligibleAcocunts.Length > 0)
-        {
-            foreach (var addr in createMessage.IneligibleAcocunts)
-            {
-                if (!IsAddress(addr))
-                {
-                    throw new Exception("Proposal definition contains an invalid ineligible address.");
-                }
-            }
-        }
         var tokenInfo = await GetHcsTokenInfo(createMessage.TokenId);
         if (tokenInfo is null)
         {
@@ -155,7 +196,7 @@ async Task GetProposalInfo()
         {
             throw new Exception("Proposal Voting Token has been deleted.");
         }
-        if (hcsMessage.ConsensusTimestamp.CompareTo(tokenInfo.CreatedTimestamp) <= 0)
+        if (hcsCreateMessage.ConsensusTimestamp.CompareTo(tokenInfo.CreatedTimestamp) <= 0)
         {
             throw new Exception("Proposal was created before its voting token was created.");
         }
@@ -164,8 +205,9 @@ async Task GetProposalInfo()
             throw new Exception("Proposal does not utilize a fungible voting token.");
         }
         var threshold = 0UL;
-        var ineligible = createMessage.IneligibleAcocunts ?? Array.Empty<string>();
-        if (createMessage.RequiredThreshold.GetValueOrDefault() > 0.0)
+        var requiredThresholdFraction = createMessage.RequiredThreshold ?? rulesDefinition.MinimumRequiredVotingThreshold.GetValueOrDefault();
+        var ineligible = (createMessage.IneligibleAccounts ?? Array.Empty<string>()).Union(rulesDefinition.IneligibleAccounts ?? Array.Empty<string>()).ToArray();
+        if (requiredThresholdFraction > 0.0)
         {
             if (!ulong.TryParse(tokenInfo.Circulation, out ulong circulation))
             {
@@ -196,18 +238,18 @@ async Task GetProposalInfo()
                         }
                     }
                 }
-                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * (circulation - ineligibleBalances));
+                threshold = (ulong)Math.Ceiling(requiredThresholdFraction * (circulation - ineligibleBalances));
             }
             else
             {
-                threshold = (ulong)Math.Round(createMessage.RequiredThreshold.Value * circulation);
+                threshold = (ulong)Math.Ceiling(requiredThresholdFraction * circulation);
             }
         }
         proposalInfo = new ProposalInfo
         {
             ProposalId = proposalId,
             TokenId = createMessage.TokenId,
-            TopicId = hcsMessage.TopicId,
+            TopicId = hcsCreateMessage.TopicId,
             Choices = createMessage.Choices,
             StartVoting = createMessage.StartTimestamp,
             EndVoting = createMessage.EndTimestamp,
@@ -225,8 +267,7 @@ async Task GatherVotes()
 {
     await foreach (var hcsMessage in GetValidHcsMessagesInRange(proposalInfo.TopicId, proposalInfo.StartVoting, proposalInfo.EndVoting))
     {
-        var jsonMessage = Convert.FromBase64String(hcsMessage.Message);
-        var voteMessage = JsonSerializer.Deserialize<HcsVoteMessage>(jsonMessage);
+        var voteMessage = ParseVoteHcsMessage(hcsMessage);
         if (voteMessage is not null &&
             "cast-vote".Equals(voteMessage.MessageType) &&
             proposalId.Equals(voteMessage.ProposalId) &&
@@ -262,6 +303,20 @@ async Task GatherVotes()
             }
         }
     }
+}
+
+HcsVoteMessage ParseVoteHcsMessage(HcsMessage hcsMessage)
+{
+    try
+    {
+        var jsonMessage = Convert.FromBase64String(hcsMessage.Message);
+        return JsonSerializer.Deserialize<HcsVoteMessage>(jsonMessage);
+    }
+    catch (JsonException)
+    {
+        // Not a valid message.
+    }
+    return null;
 }
 
 void TallyVotes()
@@ -333,23 +388,18 @@ async Task<HcsMessage> GetHcsMessageByConsensusTimestamp(string consensusTimesta
     {
         throw new Exception($"HCS Message at timestamp {consensusTimestamp} was not found.");
     }
-    if (hcsMessage.ChunkInfo is not null)
+    return ValidateHcsMessage(hcsMessage);
+}
+
+async Task<HcsMessage> GetFirstHcsMessageInTopic(string hcsTopic)
+{
+    await using var stream = await client.GetStreamAsync($"{mirrorNodeUrl}/api/v1/topics/{hcsTopic}/messages/1");
+    var hcsMessage = JsonSerializer.Deserialize<HcsMessage>(stream);
+    if (hcsMessage is null)
     {
-        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} has chunks, which are not supported.");
+        throw new Exception($"First HCS Message in stream {hcsTopic} appears to be empty.");
     }
-    if (string.IsNullOrWhiteSpace(hcsMessage.Message))
-    {
-        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} has no message payload.");
-    }
-    if (!IsAddress(hcsMessage.TopicId))
-    {
-        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} does not have a valid topic id.");
-    }
-    if (!IsAddress(hcsMessage.PayerId))
-    {
-        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} does not have a valid payer id.");
-    }
-    return hcsMessage;
+    return ValidateHcsMessage(hcsMessage);
 }
 
 void OutputResults()
@@ -422,14 +472,66 @@ bool IsAddress(string value)
     return Regex.IsMatch(value, @"^\d+\.\d+\.\d+$");
 }
 
-string CurrentTime()
+bool IsAddressArrayOrUndefined(string[] value)
 {
-    TimeSpan timespan = DateTime.UtcNow - EPOCH;
-    long seconds = (long)timespan.TotalSeconds;
-    int nanos = (int)((timespan.Ticks - (seconds * TimeSpan.TicksPerSecond)) * NanosPerTick);
-    return $"{seconds}.{nanos.ToString().PadLeft(6, '0')}";
+    if (value is not null && value.Length > 0)
+    {
+        foreach (var addr in value)
+        {
+            if (!IsAddress(addr))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
+bool IsFractionOrUndefined(double? value)
+{
+    return !(value.HasValue && (value.Value < 0 || value.Value > 1));
+}
+
+bool IsNonNegativeOrUndefined(double? value)
+{
+    return !(value.HasValue && value.Value < 0);
+}
+
+double ComputeDiffInDays(string startingTimestamp, string endingTimestamp)
+{
+    var startingSeconds = double.Parse(startingTimestamp);
+    var endingSeconds = double.Parse(endingTimestamp);
+    return (endingSeconds - startingSeconds) / 86400.0;
+}
+
+string CurrentTime()
+{
+    TimeSpan timespan = DateTime.UtcNow - DateTime.UnixEpoch;
+    long seconds = (long)timespan.TotalSeconds;
+    int nanos = (int)((timespan.Ticks - (seconds * TimeSpan.TicksPerSecond)) * NanosPerTick);
+    return $"{seconds}.{nanos.ToString().PadLeft(9, '0')}";
+}
+
+HcsMessage ValidateHcsMessage(HcsMessage hcsMessage)
+{
+    if (hcsMessage.ChunkInfo is not null)
+    {
+        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} has chunks, which are not supported.");
+    }
+    if (string.IsNullOrWhiteSpace(hcsMessage.Message))
+    {
+        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} has no message payload.");
+    }
+    if (!IsAddress(hcsMessage.TopicId))
+    {
+        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} does not have a valid topic id.");
+    }
+    if (!IsAddress(hcsMessage.PayerId))
+    {
+        throw new Exception($"HCS Message {hcsMessage.SequenceNumber} does not have a valid payer id.");
+    }
+    return hcsMessage;
+}
 
 public record ProposalInfo
 {
@@ -486,7 +588,29 @@ public class HcsCreateProposalMessage
     [JsonPropertyName("threshold")]
     public double? RequiredThreshold { get; set; }
     [JsonPropertyName("ineligible")]
-    public string[] IneligibleAcocunts { get; set; }
+    public string[] IneligibleAccounts { get; set; }
+}
+
+public class HcsRulesMessage
+{
+    [JsonPropertyName("type")]
+    public string MessageType { get; set; }
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
+    [JsonPropertyName("description")]
+    public string Description { get; set; }
+    [JsonPropertyName("tokenId")]
+    public string TokenId { get; set; }
+    [JsonPropertyName("minVotingThreshold")]
+    public double? MinimumRequiredVotingThreshold { get; set; }
+    [JsonPropertyName("ineligibleAccounts")]
+    public string[] IneligibleAccounts { get; set; }
+    [JsonPropertyName("ballotCreators")]
+    public string[] BallotCreators { get; set; }
+    [JsonPropertyName("minimumVotingPeriod")]
+    public double? MinimumVotingPeriod { get; set; }
+    [JsonPropertyName("minimumStandoffPeriod")]
+    public double? MinimumStandoffPeriod { get; set; }
 }
 
 public class HcsVoteMessage

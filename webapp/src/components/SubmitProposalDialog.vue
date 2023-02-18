@@ -2,11 +2,14 @@
 import { currentGateway, GatewayProvider } from "@/models/gateway";
 import type { BallotCreateParams } from "@/models/gateway";
 import { ref, onMounted } from "vue";
-import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
+import {
+  ceilingEpochFromDate,
+  floorOrStandoffEpochFromDate,
+} from "@/models/epoch";
 import { trimOptionalText } from "@/models/text";
 import CopyPasteIcon from "./icons/CopyPasteIcon.vue";
 import { token, network } from "@/models/info";
-import { submitHcsMessage } from "@/models/hashconnect";
+import { pairedWallet, submitHcsMessage } from "@/models/hashconnect";
 import HashConnectIcon from "./icons/HashConnectIcon.vue";
 
 let resolveFn: (() => void) | null = null;
@@ -27,22 +30,38 @@ function trySubmitCreateBallot(
     if (dialog.value.open) {
       reject("Dialog is Already Open");
     } else {
-      resolveFn = resolve;
-      payload.value = JSON.stringify({
-        type: "create-ballot",
-        tokenId: token.value.id,
-        title: ballotParams.title,
-        description: trimOptionalText(ballotParams.description),
-        discussion: trimOptionalText(ballotParams.discussion),
-        scheme: "single-choice",
-        choices: ["Yes", "No", "Abstain"],
-        startTimestamp: floorEpochFromDate(ballotParams.startDate),
-        endTimestamp: ceilingEpochFromDate(ballotParams.endDate),
-        threshold: network.value.threshold,
-        ineligible: network.value.ineligible,
-      });
-      requestSent.value = false;
-      result.value = null;
+      if (
+        currentGateway.value === GatewayProvider.HashConnect &&
+        network.value.creators.length > 0 &&
+        pairedWallet.value &&
+        !network.value.creators.includes(pairedWallet.value.accountIds[0])
+      ) {
+        requestSent.value = true;
+        result.value = {
+          success: false,
+          description: `Account ${pairedWallet.value.accountIds[0]} does not have permission to submit proposals.`,
+        };
+      } else {
+        resolveFn = resolve;
+        payload.value = JSON.stringify({
+          type: "create-ballot",
+          tokenId: token.value.id,
+          title: ballotParams.title,
+          description: trimOptionalText(ballotParams.description),
+          discussion: trimOptionalText(ballotParams.discussion),
+          scheme: "single-choice",
+          choices: ["Yes", "No", "Abstain"],
+          startTimestamp: floorOrStandoffEpochFromDate(
+            ballotParams.startDate,
+            network.value.minimumStandoffPeriod
+          ),
+          endTimestamp: ceilingEpochFromDate(ballotParams.endDate),
+          threshold: network.value.minVotingThreshold,
+          ineligible: network.value.ineligible,
+        });
+        requestSent.value = false;
+        result.value = null;
+      }
       dialog.value.showModal();
     }
   });

@@ -11,7 +11,10 @@ import ProposalDetailView from "@/components/ProposalDetailView.vue";
 import type { BallotCreateParams } from "@/models/gateway";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
-import { ceilingEpochFromDate, floorEpochFromDate } from "@/models/epoch";
+import {
+  ceilingEpochFromDate,
+  floorOrStandoffEpochFromDate,
+} from "@/models/epoch";
 import { trimOptionalText } from "@/models/text";
 import BorderPanel from "@/components/BorderPanel.vue";
 import ButtonPanel from "@/components/ButtonPanel.vue";
@@ -60,9 +63,13 @@ function showPreview() {
     choices: ["Yes", "No", "Abstain"],
     expires: 7,
     status: ProposalStatus.Voting,
-    startTimestamp: floorEpochFromDate(ballot.value.startDate) || "",
+    startTimestamp:
+      floorOrStandoffEpochFromDate(
+        ballot.value.startDate,
+        network.value.minimumStandoffPeriod
+      ) || "",
     endTimestamp: ceilingEpochFromDate(ballot.value.endDate) || "",
-    threshold: network.value.threshold,
+    threshold: network.value.minVotingThreshold,
     ineligible: network.value.ineligible,
     tally: [],
     votes: [],

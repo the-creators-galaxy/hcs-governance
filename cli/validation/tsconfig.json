@@ -20,7 +20,8 @@
         "skipLibCheck": true,
         "esModuleInterop": true,
         "exactOptionalPropertyTypes": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node"
     },
     "include": [
         "src"

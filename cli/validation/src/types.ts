@@ -106,3 +106,15 @@ export interface BallotInfo
     threshold: number;
     ineligible: string[];
 }
+
+export interface RulesDefinition {
+	type: 'define-rules';
+	title: string;
+	description: string;
+	tokenId: string | undefined;
+	minVotingThreshold: number | undefined;
+	ineligibleAccounts: string[] | undefined;
+	ballotCreators: string[] | undefined;
+	minimumVotingPeriod: number | undefined;
+	minimumStandoffPeriod: number | undefined;
+}

@@ -11,29 +11,27 @@ export async function getHcsMessageByConsensusTimestamp(hostname: string, consen
     const { code, data } = await executeRequest(options);
     if (code === 200) {
         const hcsMessage = JSON.parse(data.toString('ascii')) as HcsMessage;
-        if (!hcsMessage)
-        {
+        if (!hcsMessage) {
             throw new Error(`HCS Message at timestamp ${consensusTimestamp} was not found.`);
         }
-        if (hcsMessage.chunk_info)
-        {
-            throw new Error(`HCS Message ${hcsMessage.sequence_number} has chunks, which are not supported.`);
-        }
-        if (!hcsMessage.message)
-        {
-            throw new Error(`HCS Message ${hcsMessage.sequence_number} has no message payload.`);
-        }
-        if (!isAddress(hcsMessage.topic_id))
-        {
-            throw new Error(`HCS Message ${hcsMessage.sequence_number} does not have a valid topic id.`);
-        }
-        if (!isAddress(hcsMessage.payer_account_id))
-        {
-            throw new Error(`HCS Message ${hcsMessage.sequence_number} does not have a valid payer id.`);
-        }
-        return hcsMessage;
+        return validateHcsMessage(hcsMessage);
     } else {
-        throw new Error(`Balance for {account} was not found, code: ${code}`);
+        throw new Error(`Message at ${consensusTimestamp} was not found, code: ${code}`);
+    }
+}
+
+export async function getFirstHcsMessageInTopic(hostname: string, hcsTopic: string): Promise<HcsMessage> {
+    const path = `/api/v1/topics/${hcsTopic}/messages/1`;
+    const options: https.RequestOptions = { hostname, path, method: 'GET', agent };
+    const { code, data } = await executeRequest(options);
+    if (code === 200) {
+        const hcsMessage = JSON.parse(data.toString('ascii')) as HcsMessage;
+        if (!hcsMessage) {
+            throw new Error(`First HCS Message in stream ${hcsTopic} appears to be empty.`);
+        }
+        return validateHcsMessage(hcsMessage);
+    } else {
+        throw new Error(`HCS Message stream ${hcsTopic} appears to be empty, code: ${code}`);
     }
 }
 
@@ -90,4 +88,20 @@ function executeRequest(options: https.RequestOptions): Promise<{ code: number |
         req.on('error', e => reject(e));
         req.end();
     });
+}
+
+function validateHcsMessage(hcsMessage: HcsMessage) {
+    if (hcsMessage.chunk_info) {
+        throw new Error(`HCS Message ${hcsMessage.sequence_number} has chunks, which are not supported.`);
+    }
+    if (!hcsMessage.message) {
+        throw new Error(`HCS Message ${hcsMessage.sequence_number} has no message payload.`);
+    }
+    if (!isAddress(hcsMessage.topic_id)) {
+        throw new Error(`HCS Message ${hcsMessage.sequence_number} does not have a valid topic id.`);
+    }
+    if (!isAddress(hcsMessage.payer_account_id)) {
+        throw new Error(`HCS Message ${hcsMessage.sequence_number} does not have a valid payer id.`);
+    }
+    return hcsMessage;
 }

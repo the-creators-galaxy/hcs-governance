@@ -1,10 +1,9 @@
 import { TimestampKeyString } from '@bugbytes/hapi-util';
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { AppConfiguration } from './models/app-configuration';
 import { Ballot } from './models/ballot';
-import { TokenSummary } from './models/token-summary';
 import { Votes } from './models/vote';
 import { DataService } from './services/data.service';
-import { NetworkConfigurationService } from './services/network-configuration.service';
 /**
  * The central API App controller for this service.
  */
@@ -13,15 +12,13 @@ export class AppController {
 	/**
 	 * Public constructor, called by the NextJS runtime dependency injection services.
 	 *
-	 * @param config Contains the configuration of the service, such as the Topic to
+	 * @param config Contains the configuration of the application, such as the Topic to
 	 * monitor mirror node endpoint addresses.
-	 *
-	 * @param tokenSummary Details of the voting token.
 	 *
 	 * @param dataService The central data storage service, containing the listing
 	 * of proposal ballots and votes.
 	 */
-	constructor(private readonly config: NetworkConfigurationService, private readonly tokenSummary: TokenSummary, private readonly dataService: DataService) {}
+	constructor(private readonly config: AppConfiguration, private readonly dataService: DataService) {}
 	/**
 	 * @returns basic public configuration information for this service and the
 	 * latest known timestamp, useful for displaying in the user interface.
@@ -29,14 +26,8 @@ export class AppController {
 	@Get('info')
 	getInfo(): any {
 		return {
-			mirrorGrpc: this.config.mirrorGrpc,
-			mirrorRest: this.config.mirrorRest,
-			htsToken: this.tokenSummary,
-			hcsTopic: this.config.hcsTopic,
-			hcsStartDate: this.config.hcsStartDate,
+			...this.config,
 			lastUpdated: this.dataService.getLastUpdated(),
-			ineligible: this.config.ineligibleAccounts,
-			threshold: this.config.minVotingThreshold,
 			version: process.env.npm_package_version || 'unknown',
 		};
 	}
