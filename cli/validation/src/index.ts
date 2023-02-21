@@ -29,10 +29,10 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
     }
 
     async function getProposalInfo() {
-        try {
+        try {            
             const hcsCreateMessage = await getHcsMessageByConsensusTimestamp(hostname, ballotId);
             const jsonCreateMessage = Buffer.from(hcsCreateMessage.message, 'base64');
-            const createMessage = JSON.parse(jsonCreateMessage.toString('ascii')) as HcsCreateProposalMessage;
+            const createMessage = JSON.parse(jsonCreateMessage.toString('utf8')) as HcsCreateProposalMessage;
             if (!createMessage) {
                 throw new Error(`Invalid 'create-ballot' message.`);
             }
@@ -83,7 +83,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
             }
             const hcsRulesMessage = await getFirstHcsMessageInTopic(hostname, hcsCreateMessage.topic_id);
             const jsonRulesMessage = Buffer.from(hcsRulesMessage.message, 'base64');
-            const rulesDefinition = JSON.parse(jsonRulesMessage.toString('ascii')) as RulesDefinition;
+            const rulesDefinition = JSON.parse(jsonRulesMessage.toString('utf8')) as RulesDefinition;
             if (`define-rules` !== rulesDefinition.type) {
                 throw new Error(`The first message in the HCS Voting Stream ${hcsRulesMessage.topic_id} does not define the rules.`);
             }
@@ -220,7 +220,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
     function parseVoteHcsMessage(hcsMessage: HcsMessage): HcsVoteMessage | null {
         try {
             const jsonMessage = Buffer.from(hcsMessage.message, 'base64');
-            return JSON.parse(jsonMessage.toString('ascii')) as HcsVoteMessage;
+            return JSON.parse(jsonMessage.toString('utf8')) as HcsVoteMessage;
         } catch (error) {
             // invalid message
         }
@@ -272,7 +272,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
         hashData = data.join('|');
     }
     function computeHash() {
-        hashValue = crypto.createHash('md5').update(hashData, 'ascii').digest('hex');
+        hashValue = crypto.createHash('md5').update(hashData, 'utf8').digest('hex');
     }
     function outputResults(): Attestation {
         return {
