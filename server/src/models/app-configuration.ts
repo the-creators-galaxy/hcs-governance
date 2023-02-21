@@ -201,7 +201,7 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 			function extractPayload(): RulesDefinition {
 				try {
 					const jsonMessage = Buffer.from(firstMessage.message, 'base64');
-					return JSON.parse(jsonMessage.toString('ascii')) as RulesDefinition;
+					return JSON.parse(jsonMessage.toString('utf8')) as RulesDefinition;
 				} catch (ex) {
 					if (ex instanceof SyntaxError) {
 						throw new Error('First message in topic does not appear to define the voting rules, it is not parsable.');
