@@ -7,6 +7,9 @@ using VotingStream;
 using VotingStream.Mappers;
 using VotingStream.Mirror;
 using VotingStream.Services;
+using VotingStreamServer.Services;
+
+var internalLogCache = new LogCache();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +26,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<Clock>();
 builder.Services.AddSingleton<VotingStreamConfiguration>();
 builder.Services.AddSingleton(MirrorRestClientFactory);
+builder.Services.AddSingleton(internalLogCache);
 builder.Services.AddSingleton<TaskProcessor>();
 builder.Services.AddSingleton<ProposalRegistry>();
 builder.Services.AddSingleton<VotingStreamMonitor>();
@@ -71,6 +75,8 @@ builder.Services.AddCors(options =>
             .AllowAnyOrigin();
     });
 });
+
+builder.Logging.AddProvider(new InternalLoggerProvider(internalLogCache));
 
 var app = builder.Build();
 
