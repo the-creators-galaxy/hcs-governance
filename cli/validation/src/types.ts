@@ -5,21 +5,14 @@ export interface HcsLink
 
 export interface TokenBalance
 {
-    token_id: string;
-    balance: number;
-}
-
-export interface HcsAccountBalance
-{
     account: string;
     balance: number;
-    tokens: TokenBalance[];
 }
 
-export interface HcsAccountBalanceList
+export interface TokenBalanceList
 {
     timestamp: string;
-    balances: HcsAccountBalance[];
+    balances: TokenBalance[];
     links: HcsLink;
 }
 

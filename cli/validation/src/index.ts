@@ -1,4 +1,4 @@
-import { getFirstHcsMessageInTopic, getHcsAccountBalance, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
+import { getFirstHcsMessageInTopic, getTokenBalanceList, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
 import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsMessage, HcsVoteMessage, RulesDefinition, Vote } from "./types";
 import { computeDiffInDays, getCurrentTime, isAddress, isAddressArrayOrUndefined, isFractionOrUndefined, isNonNegativeOrUndefined, isTimestamp } from "./util";
 import * as crypto from "node:crypto";
@@ -29,7 +29,7 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
     }
 
     async function getProposalInfo() {
-        try {            
+        try {
             const hcsCreateMessage = await getHcsMessageByConsensusTimestamp(hostname, ballotId);
             const jsonCreateMessage = Buffer.from(hcsCreateMessage.message, 'base64');
             const createMessage = JSON.parse(jsonCreateMessage.toString('utf8')) as HcsCreateProposalMessage;
@@ -145,19 +145,12 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 if (ineligible.length > 0) {
                     let ineligibleBalances = 0;
                     for (const addr of ineligible) {
-                        const balanceList = await getHcsAccountBalance(hostname, addr, createMessage.startTimestamp);
-                        if (balanceList &&
-                            balanceList.balances &&
-                            balanceList.balances.length === 1) {
-                            const balances = balanceList.balances[0];
-                            if (balances &&
-                                addr === balances.account &&
-                                balances.tokens) {
-                                const tokenBalance = balances.tokens.find(b => createMessage.tokenId === b.token_id);
-                                if (tokenBalance &&
-                                    tokenBalance.balance > 0) {
-                                    ineligibleBalances = ineligibleBalances + tokenBalance.balance;
-                                }
+                        const balances = await getTokenBalanceList(hostname, addr, createMessage.tokenId, createMessage.startTimestamp);
+                        if (balances && balances.balances) {
+                            const tokenBalance = balances.balances.find(b => addr === b.account);
+                            if (tokenBalance &&
+                                tokenBalance.balance > 0) {
+                                ineligibleBalances = ineligibleBalances + tokenBalance.balance;
                             }
                         }
                     }
@@ -194,23 +187,15 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 voteMessage.vote >= -1 &&
                 voteMessage.vote < ballotInfo.choices.length &&
                 ballotInfo.ineligible.findIndex(addr => addr === hcsMessage.payer_account_id) === -1) {
-                const balanceList = await getHcsAccountBalance(hostname, hcsMessage.payer_account_id, ballotInfo.startVoting);
-                if (balanceList &&
-                    ballotInfo.startVoting >= balanceList.timestamp &&
-                    balanceList.balances &&
-                    balanceList.balances.length === 1) {
-                    const balances = balanceList.balances[0];
-                    if (balances &&
-                        hcsMessage.payer_account_id === balances.account &&
-                        balances.tokens) {
-                        const tokenBalance = balances.tokens.find(b => ballotInfo.tokenId === b.token_id);
-                        if (tokenBalance &&
-                            tokenBalance.balance > 0) {
-                            votes.set(hcsMessage.payer_account_id, {
-                                choice: voteMessage.vote,
-                                balance: tokenBalance.balance
-                            });
-                        }
+                const balances = await getTokenBalanceList(hostname, hcsMessage.payer_account_id, ballotInfo.tokenId, ballotInfo.startVoting);
+                if (balances && balances.balances) {
+                    const tokenBalance = balances.balances.find(b => hcsMessage.payer_account_id === b.account);
+                    if (tokenBalance &&
+                        tokenBalance.balance > 0) {
+                        votes.set(hcsMessage.payer_account_id, {
+                            choice: voteMessage.vote,
+                            balance: tokenBalance.balance
+                        });
                     }
                 }
             }

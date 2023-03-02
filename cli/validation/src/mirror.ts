@@ -1,6 +1,6 @@
 import * as https from 'https';
 import { URLSearchParams } from 'url'
-import { HcsAccountBalanceList, HcsMessage, HcsMessageList, HcsTokenInfo } from './types';
+import { TokenBalanceList, HcsMessage, HcsMessageList, HcsTokenInfo } from './types';
 import { isAddress } from './util';
 
 const agent = new https.Agent({ keepAlive: true });
@@ -66,9 +66,9 @@ export async function getHcsTokenInfo(hostname: string, token: string): Promise<
     }
 }
 
-export async function getHcsAccountBalance(hostname: string, account: string, timestamp: string): Promise<HcsAccountBalanceList> {
-    const queryParams = new URLSearchParams({ 'account.id': account, 'timestamp': timestamp });
-    const path = `/api/v1/balances?${queryParams.toString()}`;
+export async function getTokenBalanceList(hostname: string, account: string, token: string, timestamp: string): Promise<TokenBalanceList> {
+    const queryParams = new URLSearchParams({ 'account.id': account, 'timestamp': `lte:${timestamp}` });
+    const path = `/api/v1/tokens/${token}/balances?${queryParams.toString()}`;
     const options: https.RequestOptions = { hostname, path, method: 'GET', agent };
     let { code, data } = await executeRequest(options);
     if (code === 200) {
