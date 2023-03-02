@@ -32,10 +32,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "Logging:LogLevel:VotingStream": "Trace",
-        "MIRROR_REST": "https://testnet.mirrornode.hedera.com/",
-        "MIRROR_GRPC": "http://hcs.testnet.mirrornode.hedera.com:5600",
-        "HCS_TOPIC": "0.0.3422999",
-        "HCS_START_DATE": "1676651315.987054003"
+        "MIRROR_REST": "https://mainnet-public.mirrornode.hedera.com",
+        "MIRROR_GRPC": "https://mainnet-public.mirrornode.hedera.com:443",
+        "HCS_TOPIC": "0.0.1978981"
       }
     },
     "IIS Express": {

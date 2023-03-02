@@ -218,24 +218,10 @@ async Task GetProposalInfo()
                 var ineligibleBalances = 0UL;
                 foreach (var addr in ineligible)
                 {
-                    var balanceList = await GetHcsAccountBalance(addr, createMessage.StartTimestamp);
-                    if (balanceList is not null &&
-                        createMessage.StartTimestamp.CompareTo(balanceList.Timestamp) >= 0 &&
-                        balanceList.AccountBalances is not null &&
-                        balanceList.AccountBalances.Length == 1)
+                    var tokenBalance = await GetTokenBalanceAsync(addr, createMessage.TokenId, createMessage.StartTimestamp);
+                    if (tokenBalance is not null && tokenBalance.Balance > 0)
                     {
-                        var balances = balanceList.AccountBalances[0];
-                        if (balances is not null &&
-                            addr.Equals(balances.Account) &&
-                            balances.Tokens is not null)
-                        {
-                            var tokenBalance = balances.Tokens.FirstOrDefault(b => createMessage.TokenId.Equals(b.TokenId));
-                            if (tokenBalance is not null &&
-                                tokenBalance.Balance > 0)
-                            {
-                                ineligibleBalances = ineligibleBalances + tokenBalance.Balance;
-                            }
-                        }
+                        ineligibleBalances = ineligibleBalances + tokenBalance.Balance;
                     }
                 }
                 threshold = (ulong)Math.Ceiling(requiredThresholdFraction * (circulation - ineligibleBalances));
@@ -278,28 +264,14 @@ async Task GatherVotes()
             voteMessage.Vote.Value < proposalInfo.Choices.Length &&
             !proposalInfo.IneligibleAccounts.Contains(hcsMessage.PayerId))
         {
-            var balanceList = await GetHcsAccountBalance(hcsMessage.PayerId, proposalInfo.StartVoting);
-            if (balanceList is not null &&
-                proposalInfo.StartVoting.CompareTo(balanceList.Timestamp) >= 0 &&
-                balanceList.AccountBalances is not null &&
-                balanceList.AccountBalances.Length == 1)
+            var tokenBalance = await GetTokenBalanceAsync(hcsMessage.PayerId, proposalInfo.TokenId, proposalInfo.StartVoting);
+            if (tokenBalance is not null && tokenBalance.Balance > 0)
             {
-                var balances = balanceList.AccountBalances[0];
-                if (balances is not null &&
-                    hcsMessage.PayerId.Equals(balances.Account) &&
-                    balances.Tokens is not null)
+                votes[hcsMessage.PayerId] = new Vote
                 {
-                    var tokenBalance = balances.Tokens.FirstOrDefault(b => proposalInfo.TokenId.Equals(b.TokenId));
-                    if (tokenBalance is not null &&
-                        tokenBalance.Balance > 0)
-                    {
-                        votes[hcsMessage.PayerId] = new Vote
-                        {
-                            Choice = voteMessage.Vote.Value,
-                            Balance = tokenBalance.Balance
-                        };
-                    }
-                }
+                    Choice = voteMessage.Vote.Value,
+                    Balance = tokenBalance.Balance
+                };
             }
         }
     }
@@ -451,15 +423,16 @@ async Task<HcsTokenInfo> GetHcsTokenInfo(string tokenId)
     return hcsToken;
 }
 
-async Task<HcsAccountBalanceList> GetHcsAccountBalance(string accountId, string timestamp)
+async Task<TokenBalance> GetTokenBalanceAsync(string accountId, string tokenId, string timestamp)
 {
-    await using var stream = await client.GetStreamAsync($"{mirrorNodeUrl}/api/v1/balances?account.id={accountId}&timestamp={timestamp}");
-    var hcsBalanceList = JsonSerializer.Deserialize<HcsAccountBalanceList>(stream);
-    if (hcsBalanceList is null)
+    await using var stream = await client.GetStreamAsync($"{mirrorNodeUrl}/api/v1/tokens/{tokenId}/balances?account.id={accountId}&timestamp=lte:{timestamp}");
+    var hcsBalanceList = JsonSerializer.Deserialize<TokenBalanceList>(stream);
+    var record = hcsBalanceList?.Balances?.FirstOrDefault(r => r.Account == accountId);
+    if (record is not null)
     {
-        throw new Exception($"Balance for {accountId} was not found.");
+        return record;
     }
-    return hcsBalanceList;
+    return null;
 }
 
 bool IsTimestamp(string value)
@@ -671,30 +644,18 @@ public class HcsTokenInfo
     public bool Deleted { get; set; }
 }
 
-public class HcsAccountBalanceList
+public class TokenBalanceList
 {
     [JsonPropertyName("timestamp")]
-    public string Timestamp { get; set; }
+    public string TimeStamp { get; set; }
     [JsonPropertyName("balances")]
-    public HcsAccountBalance[] AccountBalances { get; set; }
-    [JsonPropertyName("links")]
-    public HcsLink Links { get; set; }
-}
-
-public class HcsAccountBalance
-{
-    [JsonPropertyName("account")]
-    public string Account { get; set; }
-    [JsonPropertyName("balance")]
-    public ulong CryptoBalance { get; set; }
-    [JsonPropertyName("tokens")]
-    public TokenBalance[] Tokens { get; set; }
+    public TokenBalance[] Balances { get; set; }
 }
 
 public class TokenBalance
 {
-    [JsonPropertyName("token_id")]
-    public string TokenId { get; set; }
+    [JsonPropertyName("account")]
+    public string Account { get; set; }
     [JsonPropertyName("balance")]
     public ulong Balance { get; set; }
 }

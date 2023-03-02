@@ -199,7 +199,7 @@ public class VotingStreamMonitor
                                 _grpcIsBehind = true;
                                 _logger.LogWarning("gRPC HCS Message stream appears to be falling behind Mirror REST Service.");
                             }
-                            else if (message.SequenceNumber < _latestFetchedSequenceNumber - 100 && !cts.IsCancellationRequested)
+                            else if (message.SequenceNumber + 100ul < _latestFetchedSequenceNumber && !cts.IsCancellationRequested)
                             {
                                 writer.TryComplete();
                                 cts.Cancel();
@@ -271,10 +271,13 @@ public class VotingStreamMonitor
                     await Task.Delay(500);
                     continue;
                 }
+                else if (_latestKnownSequenceNumber < _latestFetchedSequenceNumber)
+                {
+                    _latestKnownSequenceNumber = _latestFetchedSequenceNumber;
+                }
                 break;
             }
-            _latestFetchedMessageTimeStamp = timestampMark;
-            await _processor.EnqueueOrderedTask(new MarkTimeStampTask(_latestFetchedMessageTimeStamp));
+            await _processor.EnqueueOrderedTask(new MarkTimeStampTask(timestampMark));
         }
         catch (Exception ex)
         {
